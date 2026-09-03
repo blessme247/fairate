@@ -30,3 +30,8 @@ megalinter-reports/
 
 .tools/
 vendor/
+
+# fairate additions
+.env.local
+.env.*.local
+*.log
