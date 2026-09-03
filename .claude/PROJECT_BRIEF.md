@@ -38,9 +38,15 @@ oracle-attested FX rate, and the sender/receiver build a portable on-chain reput
    don't start from scratch. Run the **"Hello Bridge"** tutorial first, using its pre-existing
    contracts, to confirm the whole toolchain (RPC access, wallet funding, SDK setup) works
    end-to-end before writing any custom logic.
+   **Note:** the repo has been rebranded upstream — its title is now "Attestcoin Protocol
+   Examples", its package name is `asc-testnet-bridge-examples`, and contracts/env vars use the
+   `ASC_` prefix (Attestcoin Smart Contract). The GitHub slug is still `usc-testnet-bridge-examples`
+   and the npm SDK is still `@gluwa/usc-sdk`. Expect `USC` and `ASC` to be used interchangeably.
 2. `@gluwa/usc-sdk` (npm) — TypeScript/JS SDK for generating and verifying cross-chain inclusion
-   proofs. Requires ethers.js v6. Docs: https://docs.creditcoin.org/creditcoin-usc/dapp-builder-infrastructure/usc-sdk
-3. Attestcoin Protocol overview: https://docs.creditcoin.org/creditcoin-usc
+   proofs. Requires ethers.js v6. Pinned at `0.18.0` by the tutorial repo; keep that pin.
+   Docs: https://docs.attestcoin.org/attestcoin-protocol/dapp-builder-infrastructure
+3. Attestcoin Protocol overview: https://docs.attestcoin.org/attestcoin-protocol/architecture
+   (the older `docs.creditcoin.org/creditcoin-usc` paths now redirect here)
 4. Hackathon rules and Attestcoin SDK link: https://dorahacks.io/hackathon/buidl-ctc-2026-fall/detail
    — re-read the submission requirements before final packaging (must be original work, deployed
    on testnet, integrate Attestcoin as a core feature).
@@ -57,7 +63,7 @@ was deprecated 2026-05-27, don't use it):**
 | Chain ID | 102031 |
 | Block explorer | https://creditcoin-testnet.blockscout.com/ |
 | USC Dashboard | https://dashboard.cc3-testnet.creditcoin.network/ |
-| Proof Builder / Proof Generation API | https://proof-gen-api.cc3-testnet.creditcoin.network/ (this is the endpoint `ProverAPIProofGenerator` calls under the hood) |
+| Proof Builder / Proof Generation API | `https://prover.cc3-testnet.creditcoin.network` — the endpoint `ProverAPIProofGenerator` calls under the hood. **Corrected 2026-09-03:** an earlier draft of this brief listed `proof-gen-api.cc3-testnet.creditcoin.network`, which is not the value the tutorial repo ships. Take `PROOF_BUILDER_URL` from `bridge/.env.example` upstream, not from this table, if the two ever disagree. |
 | Chain key for Ethereum Sepolia (as the source chain) | `1` |
 | Testnet CTC tokens | No API key — join the **Creditcoin Discord**, go to the `#token-faucet` channel, post a valid address with the faucet command, wait for the bot's "CTC Faucet successful" confirmation |
 
@@ -72,6 +78,18 @@ was deprecated 2026-05-27, don't use it):**
 **Put all of the above in a `.env` file before starting Day 1** — a missing RPC key or unfunded
 wallet will look like an SDK bug rather than a config problem, and can silently stall an agent for
 a while if it's not set up first.
+
+## Toolchain (verified working 2026-09-03)
+
+| Tool | Version / note |
+|---|---|
+| Node | v24.14.0 |
+| Package manager | **pnpm 11.25.0** — this project has been switched off the upstream repo's yarn. `package.json` `packageManager` is `pnpm@11.25.0`, `yarn.lock` is deleted in favour of `pnpm-lock.yaml`, and the `verify` script calls `pnpm`, not `yarn`. Upstream tutorial READMEs still say `yarn <script>`; read those as `pnpm <script>`. |
+| pnpm build approvals | pnpm 11 moved this setting: it lives in `pnpm-workspace.yaml` as `allowBuilds: { esbuild: true }`, **not** in `package.json`'s `pnpm` field and **not** as `onlyBuiltDependencies`. Without it `pnpm install` exits 1 on every `pnpm run`, because run commands trigger a deps-status check that re-runs install. |
+| Foundry | **v1.2.3 exactly**, via `foundryup --install v1.2.3` (note: `--install`, not `--version`, on foundryup 0.0.8). Installs to `~/.foundry/bin` — that must be on `PATH` for `cast`/`forge`. |
+
+`foundry.toml` upstream uses a deprecated `[lint]` section, so every `forge`/`cast` call prints a
+config warning. It is noise, not an error — don't chase it.
 
 ## Core SDK components you'll use
 
@@ -119,9 +137,20 @@ checkpoint isn't met, use the descope order at the bottom before slipping the de
   Sepolia + Creditcoin CC3 Testnet (see Network config section above for RPC URLs, chain IDs, and
   faucet links), run Hello Bridge tutorial unmodified.
   *Checkpoint: Hello Bridge's example flow completes successfully end-to-end.*
+  **Status 2026-09-03: in progress.** Repo bootstrapped from upstream (`git init` + `upstream`
+  remote + checkout, since the target dir already held `.claude/`), pnpm + Foundry installed,
+  `pnpm utils:check_setup hello` passes every check. Not yet done: the GitHub fork itself (no `gh`
+  CLI and no GitHub auth available to the agent — a human must create the fork and add it as
+  `origin` before the repo can be pushed public for submission), and the burn/mint run itself.
 - **Day 3–4 — Core contracts.** Write and deploy `RemittanceEscrow.sol` (source-chain helper +
   Creditcoin-side contract), mock ERC-20s on both chains, reputation mapping.
   *Checkpoint: contracts deployed on both testnets, addresses recorded in a `DEPLOYMENTS.md`.*
+> [!IMPORTANT]
+> **Attestation latency is ~8–10 minutes per Sepolia transfer**, by design — the protocol waits out
+> source-chain reversion risk before attesting a height. Budget for it on Days 5–7 (a batch of 5 is
+> not 5×, since they share a continuity proof, but a serial retry loop absolutely is), and
+> pre-record the slow segment when shooting the Day 10 demo video rather than waiting on camera.
+
 - **Day 5 — Core proof flow (highest risk day).** Wire deposit → `waitUntilHeightAttested()` →
   `generateProof()` → `PrecompileBlockProver.verifySingle()` → `confirmAndRelease()`. Test via
   CLI/scripts only, no UI yet.
@@ -162,10 +191,17 @@ non-negotiable, not a style preference.
    commit messages, not in the README. This includes the Alchemy Sepolia URL, any Creditcoin RPC
    auth (if one is ever added), and wallet private keys.
 2. **All secrets live in `.env` only**, referenced in code via `process.env.VARIABLE_NAME` (or
-   the language equivalent). Use these variable names consistently:
-   - `SEPOLIA_RPC_URL`
+   the language equivalent). **Use the upstream repo's variable names, not the ones an earlier
+   draft of this brief invented** — the tutorial scripts read these exact names and renaming them
+   breaks `check_setup` and every `*:submit_query` script:
+   - `SOURCE_CHAIN_RPC_URL` (Sepolia — this brief previously called it `SEPOLIA_RPC_URL`)
    - `CREDITCOIN_RPC_URL`
-   - `DEPLOYER_PRIVATE_KEY` (testnet wallet only — never a wallet holding real funds)
+   - `CREDITCOIN_WALLET_PRIVATE_KEY` (this brief previously called it `DEPLOYER_PRIVATE_KEY`)
+     — testnet wallet only, never a wallet holding real funds
+   - `SOURCE_CHAIN_KEY` (`1` for Sepolia), `PROOF_BUILDER_URL`
+   The live file is `bridge/.env` (copied from `bridge/.env.example`), not a root `.env`. Custom
+   Fairate contract addresses added on Day 3+ should follow the same `SOURCE_CHAIN_*` /
+   `ASC_CUSTOM_*` conventions already in that example file.
 3. **`.env` must be in `.gitignore` before the first commit.** The agent should create
    `.gitignore` with `.env` in it as one of the very first actions on Day 1, before any other
    file that might reference a secret.
