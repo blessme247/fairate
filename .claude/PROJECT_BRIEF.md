@@ -137,11 +137,19 @@ checkpoint isn't met, use the descope order at the bottom before slipping the de
   Sepolia + Creditcoin CC3 Testnet (see Network config section above for RPC URLs, chain IDs, and
   faucet links), run Hello Bridge tutorial unmodified.
   *Checkpoint: Hello Bridge's example flow completes successfully end-to-end.*
-  **Status 2026-09-03: in progress.** Repo bootstrapped from upstream (`git init` + `upstream`
-  remote + checkout, since the target dir already held `.claude/`), pnpm + Foundry installed,
-  `pnpm utils:check_setup hello` passes every check. Not yet done: the GitHub fork itself (no `gh`
-  CLI and no GitHub auth available to the agent — a human must create the fork and add it as
-  `origin` before the repo can be pushed public for submission), and the burn/mint run itself.
+  **Status 2026-09-03: CHECKPOINT MET.** Hello Bridge ran end-to-end on the funded wallet
+  `0x42a50d325FA26D49282cd4CECe122B45E54927c3`: minted 50 test ERC-20 on Sepolia, burned them
+  (tx `0x216a8c7289abdb279f0844605baeee7a490ffde1b203bf97383f5ed6ffb0e054`, block 11627802),
+  waited out attestation, generated and submitted the proof to CC3
+  (tx `0xb5f33de15603515896da90a5a5f2d83b895e631715d82f21aac14792eb824d4c`,
+  queryId `0x9e91e2bb833106d5b5148467e048e928df4fad46b5b57d902030ec327b76017e`), and confirmed
+  **50.0 BTKT** on Creditcoin. Toolchain, RPC access, funding, SDK and proof path are all proven.
+  Measured attestation wait: **~8 minutes** (32 polls at 15s), attested height advancing ~10
+  Sepolia blocks at a time — it moves in batches, not continuously, so a transfer can sit at "not
+  yet attested" for a minute-plus with no visible progress. That is normal; don't add a retry.
+  **Still outstanding:** the GitHub fork itself. No `gh` CLI and no GitHub auth is available to the
+  agent, so a human must create the fork and add it as `origin`. The repo must be public at
+  submission, so do this before Day 9 packaging rather than on deadline day.
 - **Day 3–4 — Core contracts.** Write and deploy `RemittanceEscrow.sol` (source-chain helper +
   Creditcoin-side contract), mock ERC-20s on both chains, reputation mapping.
   *Checkpoint: contracts deployed on both testnets, addresses recorded in a `DEPLOYMENTS.md`.*
@@ -219,6 +227,15 @@ non-negotiable, not a style preference.
 7. **Testnet wallet private keys** used for deploying contracts should be freshly generated for
    this project, hold only testnet funds, and never be reused from any wallet with real value on
    any network.
+8. **The private key in `.env` must carry its `0x` prefix** (66 chars total). `cast` happily
+   accepts a bare 64-char key, but the repo's `isValidPrivateKey` in `shared/utils/index.ts`
+   requires `0x` + length 66, so a bare key fails every `*:submit_query` script with
+   `CREDITCOIN_WALLET_PRIVATE_KEY environment variable is not configured or invalid` while
+   `cast send` on the same value works. The error names the variable, so it reads like a missing
+   value rather than a formatting one — check the prefix first.
+9. **`CREDITCOIN_WALLET_PRIVATE_KEY` is the only wallet variable the scripts read.** Adding an
+   address under a new name (e.g. `TESTNET_WALLET`) has no effect — nothing in the repo resolves
+   it, and the signer stays whatever key that one variable holds.
 
 ## Descope order if behind schedule
 
