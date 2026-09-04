@@ -153,6 +153,18 @@ checkpoint isn't met, use the descope order at the bottom before slipping the de
 - **Day 3–4 — Core contracts.** Write and deploy `RemittanceEscrow.sol` (source-chain helper +
   Creditcoin-side contract), mock ERC-20s on both chains, reputation mapping.
   *Checkpoint: contracts deployed on both testnets, addresses recorded in a `DEPLOYMENTS.md`.*
+  **Status 2026-09-04: CHECKPOINT MET.** Five contracts in `fairate/`, 16 Foundry tests passing,
+  all four deployed and wired — see `DEPLOYMENTS.md`. Corridor registered and verified on-chain
+  (`corridors` resolves, escrow holds `ASC_MINTER`, `fUSD.totalSupply() == 0`).
+  **Design deviation from this brief, deliberate:** the brief specified
+  `confirmAndRelease(bytes32 sourceTxHash, bytes proof)`. That signature cannot work — `ASCBase`
+  owns the entrypoint and exposes `execute(action, chainKey, blockHeight, encodedTransaction,
+  merkleRoot, siblings[], lowerEndpointDigest, continuityRoots[])`, because the verifier
+  precompile needs the merkle *and* continuity proofs as structured arguments, not an opaque
+  `bytes`. Payout is keyed by the ASC-computed `queryId` (which also provides replay protection),
+  not by a caller-supplied `sourceTxHash` — a caller-supplied hash would be spoofable. Day 5's
+  worker therefore calls `execute` with action `0` (Release) via the SDK, and `initiateTransfer`
+  does not exist: a deposit *is* the initiation, on Sepolia.
 > [!IMPORTANT]
 > **Attestation latency is ~8–10 minutes per Sepolia transfer**, by design — the protocol waits out
 > source-chain reversion risk before attesting a height. Budget for it on Days 5–7 (a batch of 5 is
