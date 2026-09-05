@@ -176,6 +176,14 @@ checkpoint isn't met, use the descope order at the bottom before slipping the de
   CLI/scripts only, no UI yet.
   *Checkpoint: one full successful transfer, script-driven, receiver balance updates on
   Creditcoin CC3 Testnet. This is the go/no-go point for Days 6–7 features — see descope order.*
+  **Status 2026-09-05: CHECKPOINT MET — GO for Days 6–7.** Two transfers settled end-to-end via
+  `pnpm fairate:deposit` → `pnpm fairate:release`, with `pnpm fairate:status` reading the credit
+  record. Details and tx hashes in `DEPLOYMENTS.md`. The hackathon's core requirement —
+  Attestcoin integrated as a non-optional feature — is now satisfied and demonstrable; everything
+  from here is upside.
+  **Operational note:** the release scripts submit from one wallet, so do not run two releases
+  concurrently — racing nonces on CC3 surface as confusing failures that look like proof errors.
+  Run them sequentially, as the Day 7 batch worker will (a batch is one call anyway).
 - **Day 6 — FX-rate attestation.** Add a helper contract reading the Chainlink ETH/USD feed on
   Sepolia; attest that reading the same way as the deposit; `confirmAndRelease()` uses the
   attested rate to compute payout instead of a hardcoded value.

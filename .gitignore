@@ -35,3 +35,8 @@ vendor/
 .env.local
 .env.*.local
 *.log
+
+# Local agent tooling — not part of the project
+.agents/
+.claude/skills/
+skills-lock.json
