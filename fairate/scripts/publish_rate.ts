@@ -1,7 +1,7 @@
 import { Contract, ethers } from 'ethers';
 
 import FairateRatePublisherABI from '../contracts/abi/FairateRatePublisher.json';
-import { loadConfig } from './config';
+import { loadPublisherConfig } from './config';
 
 const FX_ENDPOINT = 'https://open.er-api.com/v6/latest/USD';
 const SOURCE_NAME = 'open.er-api.com (exchangerate-api.com)';
@@ -9,7 +9,13 @@ const RATE_DECIMALS = 8;
 
 type FxResponse = {
   result: string;
-  timeLastUpdateUnix: number;
+  /**
+   * Provider's own field name. It is snake_case on the wire, so it cannot be renamed to match
+   * local style — doing so silently yields `undefined` and a rate published with a broken
+   * timestamp, which is how this bit us once already.
+   */
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  time_last_update_unix: number;
   rates: Record<string, number>;
 };
 
@@ -30,10 +36,15 @@ async function fetchLiveRate(): Promise<{ scaled: bigint; human: number; updated
     throw new Error(`FX provider returned no usable NGN rate (got ${String(ngn)})`);
   }
 
+  const updatedAt = body.time_last_update_unix;
+  if (typeof updatedAt !== 'number' || !Number.isFinite(updatedAt) || updatedAt <= 0) {
+    throw new Error(`FX provider returned no usable timestamp (got ${String(updatedAt)})`);
+  }
+
   return {
     scaled: ethers.parseUnits(ngn.toFixed(RATE_DECIMALS), RATE_DECIMALS),
     human: ngn,
-    updatedAt: body.timeLastUpdateUnix,
+    updatedAt,
   };
 }
 
@@ -45,12 +56,12 @@ async function fetchLiveRate(): Promise<{ scaled: bigint; human: number; updated
  * rather than paying out at a stale rate.
  */
 async function main(): Promise<void> {
-  const config = loadConfig();
+  const config = loadPublisherConfig();
   const { scaled, human, updatedAt } = await fetchLiveRate();
 
   console.log(`Live USD/NGN: ${human} (provider timestamp ${new Date(updatedAt * 1000).toISOString()})`);
 
-  const publisher = new Contract(config.addresses.ratePublisher, FairateRatePublisherABI, config.sourceWallet);
+  const publisher = new Contract(config.ratePublisher, FairateRatePublisherABI, config.publisherWallet);
 
   const tx = await publisher.publish(scaled, updatedAt, SOURCE_NAME);
   console.log(`Publishing... tx ${tx.hash}`);
@@ -61,6 +72,7 @@ async function main(): Promise<void> {
   console.log(`   rate:         ${ethers.formatUnits(answer, RATE_DECIMALS)} NGN per USD`);
   console.log(`   published at: ${new Date(Number(publishedAt) * 1000).toISOString()}`);
   console.log(`   source:       ${SOURCE_NAME}`);
+  console.log(`   publisher:    ${config.publisherWallet.address}`);
 }
 
 main().catch((error: unknown) => {

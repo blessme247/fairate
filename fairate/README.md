@@ -42,6 +42,33 @@ NGN feed, or several publishers with a median.
 Every rate a script prints is labelled with the feed's own `description()`, read from the contract
 rather than written into the output, so a mislabelled corridor is visible rather than plausible.
 
+### Keeping the rate fresh
+
+`FairateRateFeed` rejects readings older than 24h, so a corridor whose publisher stops does not
+drift — it stops accepting deposits. Safe, but it means an unattended deployment goes dark within
+a day. A scheduled workflow (`.github/workflows/publish-rate.yml`) republishes daily at 06:00 UTC
+so the deployed demo stays usable; `pnpm fairate:publish-rate` does the same thing by hand.
+
+The upstream provider itself only refreshes about once a day, so "live" here means _daily, from a
+real market source_ — not tick-by-tick. The deposit script prints how long ago the rate was
+published so the age is visible rather than assumed.
+
+### The publisher key is deliberately powerless
+
+The scheduled job holds one secret, `PUBLISHER_PRIVATE_KEY`, belonging to a wallet that exists
+only to publish rates. Verified on-chain:
+
+| Check                                  | Result                                              |
+| -------------------------------------- | --------------------------------------------------- |
+| `escrow.ADMIN()`                       | the deployer, **not** the publisher                 |
+| `fNGN.hasRole(ASC_MINTER, publisher)`  | `false`                                             |
+| `registerCorridor` called as publisher | reverts `NotAdmin()` (`0x7bfa4b9f`)                 |
+| Publisher's CC3 balance                | `0` — it has no presence on the payout chain at all |
+
+So the worst a leaked CI secret achieves is a wrong rate on a testnet corridor. It cannot mint,
+cannot register a corridor, and cannot touch the payout chain. That separation is the reason the
+deployer key never goes near CI.
+
 ## How the FX rate gets attested
 
 Creditcoin cannot call a Sepolia contract, so a price cannot be _read_ across chains. The only

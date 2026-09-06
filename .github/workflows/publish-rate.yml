@@ -1,0 +1,46 @@
+name: Publish USD/NGN rate
+
+# The corridor's rate feed goes stale after 24h, at which point deposits revert rather than pay
+# out at an unknown rate. This job keeps it fresh so the deployed demo stays usable between
+# manual runs — including after judging begins.
+#
+# It holds ONLY the publisher key. That wallet can post a rate and nothing else: it is not the
+# escrow admin, holds no payout-token role, and cannot register a corridor. A leaked
+# PUBLISHER_PRIVATE_KEY means someone can publish a wrong rate on a testnet, not mint value.
+
+on:
+  schedule:
+    # 06:00 UTC daily. The upstream provider refreshes roughly once a day just after 00:00 UTC,
+    # so this picks up each new quote with margin, and leaves ~18h of the 24h staleness window
+    # spare if a run fails.
+    - cron: '0 6 * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: publish-rate
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Publish the current rate
+        env:
+          SOURCE_CHAIN_RPC_URL: ${{ secrets.SOURCE_CHAIN_RPC_URL }}
+          PUBLISHER_PRIVATE_KEY: ${{ secrets.PUBLISHER_PRIVATE_KEY }}
+          FAIRATE_RATE_PUBLISHER: ${{ vars.FAIRATE_RATE_PUBLISHER }}
+        run: pnpm fairate:publish-rate

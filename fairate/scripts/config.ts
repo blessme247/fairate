@@ -24,6 +24,34 @@ function requiredAddress(name: string): string {
   return value;
 }
 
+/**
+ * Minimal config for the rate publisher.
+ *
+ * Deliberately separate from {@link loadConfig}: the scheduled publish job must be able to run
+ * with the publisher key alone. It never sees the deployer key, so a compromised CI secret can
+ * post a wrong rate but can never register a corridor or mint a payout token.
+ */
+export type PublisherConfig = {
+  sourceProvider: ethers.JsonRpcProvider;
+  publisherWallet: ethers.Wallet;
+  ratePublisher: string;
+};
+
+export function loadPublisherConfig(): PublisherConfig {
+  const privateKey = process.env.PUBLISHER_PRIVATE_KEY;
+  if (!isValidPrivateKey(privateKey)) {
+    throw new Error('PUBLISHER_PRIVATE_KEY is missing or malformed. It must include the 0x prefix (66 chars total).');
+  }
+
+  const sourceProvider = new ethers.JsonRpcProvider(required('SOURCE_CHAIN_RPC_URL'));
+
+  return {
+    sourceProvider,
+    publisherWallet: new ethers.Wallet(privateKey!, sourceProvider),
+    ratePublisher: requiredAddress('FAIRATE_RATE_PUBLISHER'),
+  };
+}
+
 export type FairateConfig = {
   sourceChainKey: number;
   proofBuilderUrl: string;

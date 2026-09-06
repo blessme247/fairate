@@ -2,118 +2,91 @@
 
 All addresses below are **testnet only**. Nothing here holds or represents real value.
 
-Deployer / demo wallet: `0x42a50d325FA26D49282cd4CECe122B45E54927c3`
+- Deployer / demo wallet: `0x42a50d325FA26D49282cd4CECe122B45E54927c3`
+- Rate publisher wallet: `0x29C0635e52144710a584624510f7B30d5aE53D83` — Sepolia gas only, no admin rights
 
 ## Ethereum Sepolia (source chain, chain ID 11155111)
 
-The chain a sender deposits on. Attestcoin's source chain key for Sepolia is `1`.
+Where a sender deposits. Attestcoin's source chain key for Sepolia is `1`.
 
-| Contract                         | Address                                                                                                                         | Purpose                                                                                              |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `MockUSD` (mUSD)                 | [`0xB7D53a4b25fbA61be33F709e460432B1FAE3c7Ba`](https://sepolia.etherscan.io/address/0xB7D53a4b25fbA61be33F709e460432B1FAE3c7Ba) | Mock stablecoin the sender remits. Open `mint()` so a demo sender can self-fund.                     |
-| `FairateRateFeed`                | [`0xb584bD48014CbA23dC9F913831Fc90067Bb718b5`](https://sepolia.etherscan.io/address/0xb584bD48014CbA23dC9F913831Fc90067Bb718b5) | Reads the real Chainlink ETH/USD aggregator and emits `RateObserved` so the reading can be attested. |
-| `FairateDeposit`                 | [`0x25A71B8Dd77abDb9Cf37cbb8B831476D6b29ee63`](https://sepolia.etherscan.io/address/0x25A71B8Dd77abDb9Cf37cbb8B831476D6b29ee63) | Locks mUSD and emits `RemittanceDeposited` alongside the rate, in one receipt.                       |
-| `DemoAggregator`                 | [`0xa10Fe3792081393858C492fc19b36AD7222ce62B`](https://sepolia.etherscan.io/address/0xa10Fe3792081393858C492fc19b36AD7222ce62B) | **Demo only.** Hand-settable feed used to prove payouts track the rate. Not in the real corridor.    |
-| `FairateDeposit` (demo corridor) | [`0x63BA154f35A679752C16F8CDf46a87b5c9D993cf`](https://sepolia.etherscan.io/address/0x63BA154f35A679752C16F8CDf46a87b5c9D993cf) | Second corridor wired to `DemoAggregator` via its own `FairateRateFeed` at `0xd6Dc3b2F…9dc6`.        |
+| Contract               | Address                                                                                                                         | Purpose                                                                          |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `MockUSD` (mUSD)       | [`0xB7D53a4b25fbA61be33F709e460432B1FAE3c7Ba`](https://sepolia.etherscan.io/address/0xB7D53a4b25fbA61be33F709e460432B1FAE3c7Ba) | Mock stablecoin the sender remits. Open `mint()` so a demo sender can self-fund. |
+| `FairateRatePublisher` | [`0x24be75C6868F4e283d37f91Ae15cA924723cDA90`](https://sepolia.etherscan.io/address/0x24be75C6868F4e283d37f91Ae15cA924723cDA90) | Publishes live USD/NGN from a real FX provider. `description()` = `USD / NGN`.   |
+| `FairateRateFeed`      | [`0x11b16c9E2E705A0B5eb9Dc5c5dD621b4670297cB`](https://sepolia.etherscan.io/address/0x11b16c9E2E705A0B5eb9Dc5c5dD621b4670297cB) | Reads the publisher, emits `RateObserved` so the reading can be attested.        |
+| `FairateDeposit`       | [`0x9F961084ed5834F6b30647599d34976C0eB1a881`](https://sepolia.etherscan.io/address/0x9F961084ed5834F6b30647599d34976C0eB1a881) | Locks mUSD, emits deposit + rate in one receipt. **Primary corridor.**           |
 
-Superseded by the Day 6 redeploy (kept for the Day 5 transfer history):
-`FairateDeposit` `0xE85FF6eA…7c88` — the pre-FX version, no rate log.
+### Secondary corridors on the same escrow
 
-Deploy transactions:
-
-- MockUSD — `0xf46f2e8b55153ba3fc035030251441e5845b125e8c930a58ac143a4e3ba7ce2f`
-- FairateDeposit — `0x9b9d8820c819884e61d158d72a4b3e98dd13148f30db927be113bb49c10884c2`
+| Contract                      | Address                                                                                                                         | Purpose                                                                               |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `FairateRateFeed` (Chainlink) | [`0xb584bD48014CbA23dC9F913831Fc90067Bb718b5`](https://sepolia.etherscan.io/address/0xb584bD48014CbA23dC9F913831Fc90067Bb718b5) | Reads the real Chainlink aggregator `0x694AA176…5306`. `description()` = `ETH / USD`. |
+| `FairateDeposit` (Chainlink)  | [`0x25A71B8Dd77abDb9Cf37cbb8B831476D6b29ee63`](https://sepolia.etherscan.io/address/0x25A71B8Dd77abDb9Cf37cbb8B831476D6b29ee63) | Demonstrates the fully decentralized feed path.                                       |
+| `DemoAggregator`              | [`0xa10Fe3792081393858C492fc19b36AD7222ce62B`](https://sepolia.etherscan.io/address/0xa10Fe3792081393858C492fc19b36AD7222ce62B) | **Demo only.** Hand-settable feed, for showing rate sensitivity on cue.               |
+| `FairateDeposit` (demo)       | [`0x63BA154f35A679752C16F8CDf46a87b5c9D993cf`](https://sepolia.etherscan.io/address/0x63BA154f35A679752C16F8CDf46a87b5c9D993cf) | Wired to `DemoAggregator` via `FairateRateFeed` `0xd6Dc3b2F…9dc6`.                    |
 
 ## Creditcoin CC3 Testnet (payout chain, chain ID 102031)
 
-| Contract            | Address                                                                                                                                      | Purpose                                                                                                                |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `RemittanceEscrow`  | [`0x40452120466298b3fa60D92Ce6ab0fEbe307d2D1`](https://creditcoin-testnet.blockscout.com/address/0x40452120466298b3fa60D92Ce6ab0fEbe307d2D1) | ASC extending `ASCBase`. Verifies the Sepolia deposit via the Attestcoin precompile, mints payout, records reputation. |
-| `FairateUSD` (fUSD) | [`0x182DACB3625Fa208514aFa734279f9Cc9f6639D2`](https://creditcoin-testnet.blockscout.com/address/0x182DACB3625Fa208514aFa734279f9Cc9f6639D2) | Payout token. Only `RemittanceEscrow` holds `ASC_MINTER`.                                                              |
+| Contract            | Address                                                                                                                                      | Purpose                                                                                                                   |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `RemittanceEscrow`  | [`0x3fe87B01Ed49740642B432EC49715995C2ea6c23`](https://creditcoin-testnet.blockscout.com/address/0x3fe87B01Ed49740642B432EC49715995C2ea6c23) | The ASC. Verifies the deposit via the Attestcoin precompile, prices it with the attested rate, mints, records reputation. |
+| `FairateNGN` (fNGN) | [`0xB7D53a4b25fbA61be33F709e460432B1FAE3c7Ba`](https://creditcoin-testnet.blockscout.com/address/0xB7D53a4b25fbA61be33F709e460432B1FAE3c7Ba) | Payout token. Only `RemittanceEscrow` holds `ASC_MINTER`.                                                                 |
 
-Deploy transactions:
-
-- RemittanceEscrow — `0x168229242cea91893f3e7e370d01536e9eb6e888067e3ace544b3df3124d5d93`
-- FairateUSD — `0x5a25befc82347f61ea3c51983bbbfb1429b8897536b9e8117b2c7489a6ca71ba`
-
-Shared infrastructure (pre-deployed by Gluwa, not by us):
+Shared infrastructure (pre-deployed by Gluwa):
 
 - `EvmV1Decoder` library — `0x04B9ae8562D8Cc5bbbBbBB759080dDC30B56D18B`
 - Native query verifier precompile — `0x0000000000000000000000000000000000000FD2`
 
+> `FairateNGN` on Creditcoin and `MockUSD` on Sepolia share an address. Same deployer, same nonce,
+> two different chains — they are unrelated contracts.
+
 ## Corridor wiring
 
-`RemittanceEscrow` pays out only for deposits into a registered source contract:
+`RemittanceEscrow` pays out only for deposits into a registered source contract, so a valid proof
+of a deposit into any other contract mints nothing. Verified on-chain:
 
-```
-registerCorridor(0xE85FF6eA57A0c4D47E12c6B7B236b7087A2b7c88, 0x182DACB3625Fa208514aFa734279f9Cc9f6639D2)
-tx 0xf55997baf0225e41d29f945354c64785398820dfdb0a7f27f857e44c6c169eea
-```
+| Check                                  | Result                              |
+| -------------------------------------- | ----------------------------------- |
+| `corridors(FairateDeposit)`            | `0xB7D53a…c7Ba` (fNGN)              |
+| `fNGN.hasRole(ASC_MINTER, escrow)`     | `true`                              |
+| `escrow.VERIFIER()`                    | `0x…0FD2` (Attestcoin precompile)   |
+| `escrow.ADMIN()`                       | the deployer, **not** the publisher |
+| `fNGN.hasRole(ASC_MINTER, publisher)`  | `false`                             |
+| `registerCorridor` called as publisher | reverts `NotAdmin()` (`0x7bfa4b9f`) |
 
-Verified on-chain after wiring:
+## Proven transfers
 
-| Check                              | Result                                    |
-| ---------------------------------- | ----------------------------------------- |
-| `corridors(FairateDeposit)`        | `0x182DAC…39D2` (fUSD)                    |
-| `fUSD.hasRole(ASC_MINTER, escrow)` | `true`                                    |
-| `escrow.VERIFIER()`                | `0x…0FD2` (Attestcoin precompile)         |
-| `fUSD.totalSupply()`               | `0` — no payout can exist without a proof |
-| `FairateDeposit.STABLECOIN()`      | `0xB7D53a…c7Ba` (mUSD)                    |
+Every payout below was released only after Attestcoin proved the Sepolia deposit, and priced at a
+rate carried in that same proved receipt.
 
-A valid proof of a deposit into **any other** contract mints nothing, because `corridors` returns
-the zero address and `_processRelease` reverts on `Unregistered corridor`.
+| Deposit tx                                                                                                              | Feed                | Attested rate | Deposited | Paid out               |
+| ----------------------------------------------------------------------------------------------------------------------- | ------------------- | ------------- | --------- | ---------------------- |
+| [`0xf4fd0dd7…a784`](https://sepolia.etherscan.io/tx/0xf4fd0dd7502c6b5659b7154b25b4c007a8930e18ea11b45ca10fa0a7de5aa784) | USD/NGN (live)      | 1323.319085   | 150 mUSD  | **198,497.86275 fNGN** |
+| [`0xd4cf5d36…1966`](https://sepolia.etherscan.io/tx/0xd4cf5d36e961efaf7cb33d390474a076da16823248b411757294f2a6c6651966) | USD/NGN (live)      | 1323.319085   | 200 mUSD  | 264,663.817 fNGN       |
+| [`0x4724e2d5…4915`](https://sepolia.etherscan.io/tx/0x4724e2d5f48a6b2ece207b9389c2b12535e70bc7639f3cf73222a46841644915) | ETH/USD (Chainlink) | 2494.2019     | 250 mUSD  | 623,550.475 fNGN       |
+| [`0x039debd7…4718`](https://sepolia.etherscan.io/tx/0x039debd7e50e8c7054934282bbbcebdc6b2120443730567ab3cf20cb8f654718) | Demo                | 1500.00       | 100 mUSD  | 150,000 fNGN           |
+| [`0x9d8ae863…8521`](https://sepolia.etherscan.io/tx/0x9d8ae86396357b190c14b77219fc129b583754c2aa54b7188417663f662a8521) | Demo                | 1650.00       | 100 mUSD  | 165,000 fNGN           |
 
-## Proven transfers (Day 5)
+The last two are the FX checkpoint: identical 100 mUSD deposits, different attested rates,
+different payouts.
 
-Two end-to-end transfers, each released only after Attestcoin proved the Sepolia deposit.
+`fNGN.totalSupply()` = `1401712154750000000000000` = the sum of every payout above, exactly. No
+other fNGN exists, because no other path can create it.
 
-| #   | Sepolia deposit tx                 | Creditcoin release tx | Amount   | Receiver               |
-| --- | ---------------------------------- | --------------------- | -------- | ---------------------- |
-| 0   | `0x16d7e5dc…310b` (block 11638844) | `0x0b9a2693…ffa1`     | 250 fUSD | `0x42a50d…27c3` (self) |
-| 1   | `0xc296e4b3…cdf8` (block 11638849) | _(see git log)_       | 75 fUSD  | `0xc4635B…Fe00`        |
+Earlier transfers (250 and 75 fUSD, Day 5) settled against the superseded pre-FX stack and are
+recorded in git history.
 
-Query ids (the escrow's replay keys):
+## Superseded deployments
 
-- `0x8f36297bc6df324d1f94ea0b81f5d419ed3214aba2b6a989877c3361549e5f9e`
-- `0x0272a8d12376f223a266697fbeb7fa40ea5a485a685ac1e4b7e8f3d4f65b4611`
+Kept so the transfer history above stays traceable:
 
-Post-settlement state:
-
-| Check                        | Result                                                      |
-| ---------------------------- | ----------------------------------------------------------- |
-| `fUSD.totalSupply()`         | `325 fUSD` — exactly the two attested amounts, nothing else |
-| `processedQueries(queryId0)` | `true` — replay of the same proof reverts                   |
-| `reputation(0x42a50d…27c3)`  | 1 sent / 1 received, 250 volume each way                    |
-| `reputation(0xc4635B…Fe00)`  | 0 sent / 1 received, 75 received volume                     |
-
-Measured attestation latency: ~4-8 minutes per transfer.
-
-## FX-rate attestation (Day 6)
-
-The same 100 mUSD deposit, released at two different attested rates:
-
-| Deposit           | Attested rate | Deposited | Paid out         |
-| ----------------- | ------------- | --------- | ---------------- |
-| `0x039debd7…4718` | 1500.00       | 100 mUSD  | **150,000 fNGN** |
-| `0x9d8ae863…8521` | 1650.00       | 100 mUSD  | **165,000 fNGN** |
-
-And against the real Chainlink ETH/USD feed:
-
-| Deposit           | Attested rate | Deposited | Paid out             |
-| ----------------- | ------------- | --------- | -------------------- |
-| `0x4724e2d5…4915` | 2494.2019     | 250 mUSD  | **623,550.475 fNGN** |
-
-`fNGN.totalSupply()` equals the sum of every attested payout above, exactly.
-
-Rates are labelled from each feed's own `description()`, read on-chain, so the pair shown is the
-pair actually used.
-
-The rate is not supplied by whoever calls `execute` — it is decoded from a `RateObserved` log in
-the same attested receipt as the deposit, so it is the rate that was live on Sepolia at deposit
-time. Payout is `amount * rate / 10**rateDecimals`.
+- `RemittanceEscrow` `0x40452120…d2D1` and `FairateUSD` `0x182DACB3…39D2` — pre-FX, paid 1:1
+- `FairateDeposit` `0xE85FF6eA…7c88` — pre-FX, emitted no rate log
+- `FairateDeposit` `0x32328dc8…6290`, `FairateRateFeed` `0x226E7F6a…AB65` — pre-publisher-isolation
+- `FairateDeposit` `0x6a368E74…043D`, `FairateRateFeed` `0x5F39EB8D…2b98` — pre-`peek()` signature
+- `FairateRatePublisher` `0x4555DB94…9dfa` — publisher role held the deployer key
 
 ## Reproducing
 
-Addresses live in `bridge/.env` (gitignored) as `FAIRATE_*`; `bridge/.env.example` carries the
-same keys with empty values. To redeploy from scratch, see the deploy commands in
-[`fairate/README.md`](fairate/README.md).
+Addresses live in `bridge/.env` (gitignored) as `FAIRATE_*`; `bridge/.env.example` carries the same
+keys with empty values. Deploy commands are in [`fairate/README.md`](fairate/README.md).
