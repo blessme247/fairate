@@ -67,8 +67,12 @@ contract FairateRateFeed {
     }
 
     /// @notice Convenience view for scripts and the frontend. Does not emit, so cannot be attested.
-    function peek() external view returns (int256 rate, uint8 rateDecimals, uint256 updatedAt) {
+    function peek()
+        external
+        view
+        returns (int256 rate, uint8 rateDecimals, uint256 updatedAt, string memory pair)
+    {
         (, int256 answer,, uint256 roundUpdatedAt,) = FEED.latestRoundData();
-        return (answer, FEED.decimals(), roundUpdatedAt);
+        return (answer, FEED.decimals(), roundUpdatedAt, FEED.description());
     }
 }

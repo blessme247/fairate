@@ -6,7 +6,8 @@ modules so the same Foundry and pnpm workflow applies.
 ```
 contracts/sol/
   MockUSD.sol               # Sepolia  — mock stablecoin the sender remits
-  FairateRateFeed.sol       # Sepolia  — reads Chainlink, emits the rate so it can be attested
+  FairateRatePublisher.sol  # Sepolia  — publishes the live USD/NGN rate from a real FX provider
+  FairateRateFeed.sol       # Sepolia  — reads any Chainlink-shaped feed, emits the rate for attesting
   FairateDeposit.sol        # Sepolia  — locks funds, emits RemittanceDeposited + the rate
   DemoAggregator.sol        # Sepolia  — DEMO ONLY, a hand-settable feed for showing rate changes
   FairateMintableToken.sol  # CC3      — ERC20 base, mintable only by the ASC
@@ -14,6 +15,32 @@ contracts/sol/
   RemittanceEscrow.sol      # CC3      — the ASC: proves the deposit, prices it, pays out, scores
 test/                       # 28 tests, no network access required
 ```
+
+## Where the rate comes from
+
+The payout token is naira-denominated, so the rate must be **USD/NGN**. Chainlink publishes no NGN
+pair — not on Sepolia, not anywhere — so there is no decentralized aggregator to read for this
+corridor. Fairate runs two corridors rather than mislabel one feed as another:
+
+| Corridor               | Feed                                   | Pair      | Trust model                                                                   |
+| ---------------------- | -------------------------------------- | --------- | ----------------------------------------------------------------------------- |
+| **Live NGN** (primary) | `FairateRatePublisher`                 | USD / NGN | First-party: an off-chain job reads a real FX provider and publishes on-chain |
+| **Chainlink**          | Chainlink aggregator `0x694AA176…5306` | ETH / USD | Decentralized: many independent node operators must agree                     |
+
+The naira corridor gets a genuinely live rate, refreshed by `pnpm fairate:publish-rate`, and every
+number a viewer sees is one they can check against any FX site. The Chainlink corridor exists so
+the fully decentralized path is _demonstrated_ rather than described — identical contracts,
+identical proof flow, only the source of the number differs.
+
+Being straight about the trade-off: a first-party publisher is a real step down from Chainlink. A
+dishonest publisher can post any number and Attestcoin will faithfully prove that number crossed
+chains untampered — attestation guarantees provenance, never accuracy. What it still buys is that
+the rate is public on-chain before it is used, staleness is enforceable, and the payout side
+cannot be told a different rate than the one published. The production answer is a decentralized
+NGN feed, or several publishers with a median.
+
+Every rate a script prints is labelled with the feed's own `description()`, read from the contract
+rather than written into the output, so a mislabelled corridor is visible rather than plausible.
 
 ## How the FX rate gets attested
 

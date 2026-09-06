@@ -103,7 +103,10 @@ And against the real Chainlink ETH/USD feed:
 | ----------------- | ------------- | --------- | -------------------- |
 | `0x4724e2d5…4915` | 2494.2019     | 250 mUSD  | **623,550.475 fNGN** |
 
-`fNGN.totalSupply()` = `938550475000000000000000` = 623,550.475 + 150,000 + 165,000, exactly.
+`fNGN.totalSupply()` equals the sum of every attested payout above, exactly.
+
+Rates are labelled from each feed's own `description()`, read on-chain, so the pair shown is the
+pair actually used.
 
 The rate is not supplied by whoever calls `execute` — it is decoded from a `RateObserved` log in
 the same attested receipt as the deposit, so it is the rate that was live on Sepolia at deposit

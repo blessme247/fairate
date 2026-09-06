@@ -59,12 +59,11 @@ async function main(): Promise<void> {
   }
 
   const rateFeed = new Contract(config.addresses.rateFeed, FairateRateFeedABI, config.sourceProvider);
-  const [rate, rateDecimals] = await rateFeed.peek();
+  const [rate, rateDecimals, rateUpdatedAt, pair] = await rateFeed.peek();
   const humanRate = ethers.formatUnits(rate, rateDecimals);
-  console.log(`Live Chainlink rate: ${humanRate}`);
-  console.log(
-    `Expected payout:     ~${(Number(ethers.formatEther(amount)) * Number(humanRate)).toLocaleString()} fNGN\n`
-  );
+  const ageMinutes = Math.round((Date.now() / 1000 - Number(rateUpdatedAt)) / 60);
+  console.log(`Rate:            ${humanRate} (${pair}, published ${ageMinutes} min ago)`);
+  console.log(`Expected payout: ~${(Number(ethers.formatEther(amount)) * Number(humanRate)).toLocaleString()} fNGN\n`);
 
   console.log('Depositing...');
   const depositTx = await depositContract.deposit(receiver, amount);

@@ -6,6 +6,7 @@
     "hello_bridge:submit_query": "tsx bridge/hello-bridge/submit_query.ts",
     "custom_bridge:submit_query": "tsx bridge/custom-contracts-bridging/submit_query.ts",
     "offchain:start_worker": "tsx bridge/bridge-offchain-worker/worker.ts",
+    "fairate:publish-rate": "tsx fairate/scripts/publish_rate.ts",
     "fairate:deposit": "tsx fairate/scripts/deposit.ts",
     "fairate:release": "tsx fairate/scripts/release.ts",
     "fairate:status": "tsx fairate/scripts/status.ts",

@@ -197,6 +197,16 @@ checkpoint isn't met, use the descope order at the bottom before slipping the de
   proof instead of two, no staleness window between deposit and rate, and half the attestation
   wait. Staleness is bounded at 24h inside `observe()` on Sepolia, the only chain with a
   trustworthy clock for that feed.
+  **Correction, same day:** the first cut priced fNGN off Chainlink's ETH/USD feed as a "stand-in"
+  for USD/NGN. That was wrong — ~2494 is not a naira rate, and a naira token priced off ether
+  reads as either sloppy or suspicious. Chainlink publishes no NGN pair on any network, so the
+  fix was `FairateRatePublisher`: an off-chain job (`pnpm fairate:publish-rate`) reads a real FX
+  provider and publishes USD/NGN on Sepolia through a Chainlink-shaped interface, keeping
+  everything downstream unchanged. The Chainlink corridor stays live alongside it so the
+  decentralized path is demonstrated, not just described. **Rule going forward: never label a
+  rate as a pair it is not — every displayed rate is read from the feed's own `description()`.**
+  Trade-off to state plainly in the README: a first-party publisher is weaker than a decentralized
+  aggregator, and attestation proves provenance, not accuracy.
   **Payout token renamed fUSD → fNGN** (`FairateNGN`), so a USD→local-currency corridor reads
   coherently; the ETH/USD feed stands in for a USD/NGN feed that does not exist on Sepolia, and
   the mechanism is identical either way. Day 6 required a full redeploy of both sides — see

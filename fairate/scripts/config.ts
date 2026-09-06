@@ -37,6 +37,7 @@ export type FairateConfig = {
     escrow: string;
     payoutToken: string;
     rateFeed: string;
+    ratePublisher: string;
   };
 };
 
@@ -73,6 +74,7 @@ export function loadConfig(): FairateConfig {
       escrow: requiredAddress('FAIRATE_ESCROW'),
       payoutToken: requiredAddress('FAIRATE_PAYOUT_TOKEN'),
       rateFeed: requiredAddress('FAIRATE_RATE_FEED'),
+      ratePublisher: requiredAddress('FAIRATE_RATE_PUBLISHER'),
     },
   };
 }

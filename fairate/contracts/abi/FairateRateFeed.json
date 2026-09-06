@@ -73,6 +73,11 @@
         "name": "updatedAt",
         "type": "uint256",
         "internalType": "uint256"
+      },
+      {
+        "name": "pair",
+        "type": "string",
+        "internalType": "string"
       }
     ],
     "stateMutability": "view"
