@@ -101,6 +101,26 @@ wire format: 3 topics (signature, sender, receiver) and 64 bytes of data (amount
 tutorial's `ASCMinter` does for its burn event. Change the event and the payout side stops
 recognising deposits — `testDepositEventSignatureMatchesSourceContract` fails loudly if you do.
 
+## Batch settlement
+
+`ASCBase` only exposes a single-transaction `execute`, so `RemittanceEscrow.executeBatch` calls the
+verifier precompile's array overload directly. One continuity proof — the chain of attested block
+roots back to a known endpoint — covers every deposit in the range, so per-deposit cost falls to a
+Merkle inclusion check:
+
+```sh
+pnpm fairate:settle-batch <txHash> <txHash> <txHash>
+```
+
+Security is deliberately identical to the single path. Query ids are deduped _before_ verification
+(including against duplicates within the same batch), the precompile verifies the whole batch
+atomically, and each deposit still goes through `_processRelease` with its own corridor and rate
+checks. One bad proof reverts the entire run — there is no partial settlement to reconcile.
+
+Measured saving is **10% at three transfers** (see `../DEPLOYMENTS.md`), and it grows with batch
+size and block range. The structural claim is the durable one: batch cost scales with Merkle
+checks, not with continuity proofs.
+
 ## Build and test
 
 ```sh

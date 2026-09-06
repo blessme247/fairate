@@ -215,6 +215,18 @@ checkpoint isn't met, use the descope order at the bottom before slipping the de
   settle them in one `verifyBatch()` call sharing a continuity proof.
   *Checkpoint: a batch of at least 3 simulated transfers settles in a single on-chain
   verification call, visible in transaction logs.*
+  **Status 2026-09-06: CHECKPOINT MET.** Three real (not simulated) deposits settled in one
+  verification, tx `0xe600e463…511f`, sharing a continuity proof over headers 11649604–11649609.
+  **Implementation note:** `ASCBase` exposes only a single-transaction `execute`, so
+  `RemittanceEscrow.executeBatch` calls the precompile's array overload
+  (`verifyAndEmit(chainKey, heights[], txs[], proofs[], sharedProof)`) directly, replicating
+  ASCBase's dedupe-then-verify ordering and adding a within-batch duplicate check.
+  **Be honest about the win in the README and demo:** measured saving was 10.1% at n=3
+  (685,230 → 615,748 gas), not an order of magnitude — the continuity proof spanned only six
+  blocks. It grows with batch size and range. Overstating this is the kind of claim a judge can
+  check in one click.
+  Required a redeploy of escrow + fNGN (minter role is bound at construction), so supply and
+  reputation on the current stack start from this batch.
 - **Day 8 — Frontend.** One-page send form; status tracker (Pending → Rate Attested → Deposit
   Attested → Released) driven by contract events; reputation score display; simple batch view.
   Hardcoded testnet wallet is fine — skip wallet-connect polish.

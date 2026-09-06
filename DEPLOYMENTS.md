@@ -29,16 +29,18 @@ Where a sender deposits. Attestcoin's source chain key for Sepolia is `1`.
 
 | Contract            | Address                                                                                                                                      | Purpose                                                                                                                   |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `RemittanceEscrow`  | [`0x3fe87B01Ed49740642B432EC49715995C2ea6c23`](https://creditcoin-testnet.blockscout.com/address/0x3fe87B01Ed49740642B432EC49715995C2ea6c23) | The ASC. Verifies the deposit via the Attestcoin precompile, prices it with the attested rate, mints, records reputation. |
-| `FairateNGN` (fNGN) | [`0xB7D53a4b25fbA61be33F709e460432B1FAE3c7Ba`](https://creditcoin-testnet.blockscout.com/address/0xB7D53a4b25fbA61be33F709e460432B1FAE3c7Ba) | Payout token. Only `RemittanceEscrow` holds `ASC_MINTER`.                                                                 |
+| `RemittanceEscrow`  | [`0xd6Dc3b2FE9D2d84da83e8bab4c1CCD86B4B99dc6`](https://creditcoin-testnet.blockscout.com/address/0xd6Dc3b2FE9D2d84da83e8bab4c1CCD86B4B99dc6) | The ASC. Verifies the deposit via the Attestcoin precompile, prices it with the attested rate, mints, records reputation. |
+| `FairateNGN` (fNGN) | [`0x63BA154f35A679752C16F8CDf46a87b5c9D993cf`](https://creditcoin-testnet.blockscout.com/address/0x63BA154f35A679752C16F8CDf46a87b5c9D993cf) | Payout token. Only `RemittanceEscrow` holds `ASC_MINTER`.                                                                 |
 
 Shared infrastructure (pre-deployed by Gluwa):
 
 - `EvmV1Decoder` library — `0x04B9ae8562D8Cc5bbbBbBB759080dDC30B56D18B`
 - Native query verifier precompile — `0x0000000000000000000000000000000000000FD2`
 
-> `FairateNGN` on Creditcoin and `MockUSD` on Sepolia share an address. Same deployer, same nonce,
-> two different chains — they are unrelated contracts.
+> Several addresses repeat across the two chains: `FairateNGN` on Creditcoin matches the demo
+> `FairateDeposit` on Sepolia, and the escrow matches the demo `FairateRateFeed`. Same deployer,
+> same nonces, two different chains — unrelated contracts. Check which network an address is on
+> before reading it.
 
 ## Corridor wiring
 
@@ -47,12 +49,44 @@ of a deposit into any other contract mints nothing. Verified on-chain:
 
 | Check                                  | Result                              |
 | -------------------------------------- | ----------------------------------- |
-| `corridors(FairateDeposit)`            | `0xB7D53a…c7Ba` (fNGN)              |
+| `corridors(FairateDeposit)`            | `0x63BA15…93cf` (fNGN)              |
 | `fNGN.hasRole(ASC_MINTER, escrow)`     | `true`                              |
 | `escrow.VERIFIER()`                    | `0x…0FD2` (Attestcoin precompile)   |
 | `escrow.ADMIN()`                       | the deployer, **not** the publisher |
 | `fNGN.hasRole(ASC_MINTER, publisher)`  | `false`                             |
 | `registerCorridor` called as publisher | reverts `NotAdmin()` (`0x7bfa4b9f`) |
+
+## Batch settlement (Day 7)
+
+Three deposits, settled in **one** on-chain verification sharing a single continuity proof:
+
+```
+tx 0xe600e4630df89aa41315d9a469caa536a7c119a229c157cd9355c2a54ac2511f
+shared continuity proof covers headers 11649604–11649609 (7 roots, shared across all 3)
+
+→ 0xc4635B…Fe00   50 mUSD @ 1323.319085 =  66,165.95425  fNGN
+→ 0x29C063…3D83   75 mUSD @ 1323.319085 =  99,248.931375 fNGN
+→ 0x42a50d…27c3  120 mUSD @ 1323.319085 = 158,798.2902   fNGN
+```
+
+Measured against a single settlement on the same stack (`0x7a19fb13…8207`, 228,410 gas):
+
+|                            | Gas               |
+| -------------------------- | ----------------- |
+| Three separate settlements | 685,230           |
+| One batch of three         | **615,748**       |
+| Saving                     | 69,482 (10.1%)    |
+| Per transfer               | 228,410 → 205,249 |
+
+Worth being precise about the size of that win: **10% at three transfers**, not an order of
+magnitude. The continuity proof is what gets amortised, and here it spanned only six blocks, so
+there was not much to amortise. The saving grows with batch size and with the block range covered —
+a day's transfers share one proof instead of dozens. The structural point stands regardless: batch
+cost grows with Merkle checks, not with continuity proofs.
+
+The batch is atomic. Every query id is deduped before verification, the precompile verifies all
+three together, and each deposit still runs its own corridor and rate checks — one bad proof
+reverts the entire run rather than settling part of it.
 
 ## Proven transfers
 
@@ -70,11 +104,14 @@ rate carried in that same proved receipt.
 The last two are the FX checkpoint: identical 100 mUSD deposits, different attested rates,
 different payouts.
 
-`fNGN.totalSupply()` = `1401712154750000000000000` = the sum of every payout above, exactly. No
-other fNGN exists, because no other path can create it.
+On the **current** escrow, `fNGN.totalSupply()` = `324213175825000000000000` — exactly the three
+batch payouts above (66,165.95425 + 99,248.931375 + 158,798.2902). No other fNGN exists, because
+no other path can create it.
 
-Earlier transfers (250 and 75 fUSD, Day 5) settled against the superseded pre-FX stack and are
-recorded in git history.
+The single-transfer rows in the table above settled on earlier escrows in this same series
+(each redeploy resets supply, since the minter role is bound at construction). They remain valid
+evidence of the single-settlement path; git history and the superseded list below tie each one to
+its stack.
 
 ## Superseded deployments
 
@@ -85,6 +122,7 @@ Kept so the transfer history above stays traceable:
 - `FairateDeposit` `0x32328dc8…6290`, `FairateRateFeed` `0x226E7F6a…AB65` — pre-publisher-isolation
 - `FairateDeposit` `0x6a368E74…043D`, `FairateRateFeed` `0x5F39EB8D…2b98` — pre-`peek()` signature
 - `FairateRatePublisher` `0x4555DB94…9dfa` — publisher role held the deployer key
+- `RemittanceEscrow` `0x3fe87B01…6c23` and `FairateNGN` `0xB7D53a4b…c7Ba` — no `executeBatch`
 
 ## Reproducing
 
