@@ -89,11 +89,14 @@ async function main(): Promise<void> {
     throw new Error('Transaction mined but TransferReleased was not emitted — inspect the receipt');
   }
 
-  const { sender, receiver, amount, depositId, queryId } = released.args;
+  const { sender, receiver, amountDeposited, amountPaid, rate, rateDecimals, depositId, queryId } = released.args;
+  const humanRate = ethers.formatUnits(rate, rateDecimals);
   console.log(`\n✅ Transfer released on Creditcoin`);
   console.log(`   sender:    ${sender}`);
   console.log(`   receiver:  ${receiver}`);
-  console.log(`   amount:    ${ethers.formatEther(amount)} fUSD`);
+  console.log(`   deposited: ${ethers.formatEther(amountDeposited)} mUSD`);
+  console.log(`   rate:      ${humanRate} (attested, ${rateDecimals} dp)`);
+  console.log(`   paid out:  ${ethers.formatEther(amountPaid)} fNGN`);
   console.log(`   depositId: ${depositId.toString()}`);
   console.log(`   queryId:   ${queryId}`);
   console.log(`\nCheck the receiver's balance and credit record:`);

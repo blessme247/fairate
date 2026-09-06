@@ -189,6 +189,18 @@ checkpoint isn't met, use the descope order at the bottom before slipping the de
   attested rate to compute payout instead of a hardcoded value.
   *Checkpoint: payout amount changes correctly when the on-chain rate changes (test by reading
   the feed at two different times, or mocking a rate change on a local fork).*
+  **Status 2026-09-06: CHECKPOINT MET.** Proven on testnet, not just on a fork: identical 100 mUSD
+  deposits paid out 150,000 and 165,000 fNGN at attested rates of 1500.00 and 1650.00. A live
+  Chainlink-priced transfer also settled (250 mUSD → 623,550.475 fNGN at 2494.2019).
+  **Design choice:** the rate rides in the *same receipt* as the deposit rather than being
+  attested separately — `FairateDeposit.deposit()` calls `FairateRateFeed.observe()` inline. One
+  proof instead of two, no staleness window between deposit and rate, and half the attestation
+  wait. Staleness is bounded at 24h inside `observe()` on Sepolia, the only chain with a
+  trustworthy clock for that feed.
+  **Payout token renamed fUSD → fNGN** (`FairateNGN`), so a USD→local-currency corridor reads
+  coherently; the ETH/USD feed stands in for a USD/NGN feed that does not exist on Sepolia, and
+  the mechanism is identical either way. Day 6 required a full redeploy of both sides — see
+  `DEPLOYMENTS.md` for current and superseded addresses.
 - **Day 7 — Batch settlement.** Extend the off-chain worker to collect 3–5 simulated deposits and
   settle them in one `verifyBatch()` call sharing a continuity proof.
   *Checkpoint: a batch of at least 3 simulated transfers settles in a single on-chain

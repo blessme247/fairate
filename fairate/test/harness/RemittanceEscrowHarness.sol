@@ -14,6 +14,14 @@ contract RemittanceEscrowHarness is RemittanceEscrow {
         return _decodeDepositLog(log);
     }
 
+    function exposeDecodeRateLog(EvmV1Decoder.LogEntry memory log)
+        external
+        pure
+        returns (uint256 rate, uint8 rateDecimals)
+    {
+        return _decodeRateLog(log);
+    }
+
     function exposeRecordReputation(address sender, address receiver, uint256 amount) external {
         _recordReputation(sender, receiver, amount);
     }

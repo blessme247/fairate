@@ -2,6 +2,7 @@
 pragma solidity ^0.8.23;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {FairateRateFeed} from "./FairateRateFeed.sol";
 
 /**
  * @title FairateDeposit
@@ -14,6 +15,9 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  *      a Sepolia block. That is what makes the corridor non-custodial: there is no party here
  *      who could censor a transfer or release funds early.
  *
+ *      A deposit also triggers a Chainlink reading via {FairateRateFeed}, so one receipt carries
+ *      both the deposit and the FX rate that prices it.
+ *
  *      Locking is one-way, matching the tutorial bridge's burn-to-sink pattern. Value is
  *      recreated as fUSD on Creditcoin, so it must be provably unspendable here or the corridor
  *      would mint value out of nothing.
@@ -23,6 +27,9 @@ contract FairateDeposit {
     address public constant LOCK_SINK = address(1);
 
     IERC20 public immutable STABLECOIN;
+
+    /// @notice Reads Chainlink and emits the rate into this same transaction's receipt.
+    FairateRateFeed public immutable RATE_FEED;
 
     /// @notice Monotonic id, included so two identical transfers produce distinguishable logs.
     uint256 public depositCount;
@@ -45,8 +52,9 @@ contract FairateDeposit {
     error ZeroAmount();
     error TransferFailed();
 
-    constructor(address stablecoin) {
+    constructor(address stablecoin, address rateFeed) {
         STABLECOIN = IERC20(stablecoin);
+        RATE_FEED = FairateRateFeed(rateFeed);
     }
 
     /**
@@ -59,6 +67,11 @@ contract FairateDeposit {
         if (amount == 0) revert ZeroAmount();
 
         if (!STABLECOIN.transferFrom(msg.sender, LOCK_SINK, amount)) revert TransferFailed();
+
+        // Emits RateObserved into this transaction's receipt. Both logs are then proved together
+        // by a single attestation, so the payout is priced at the rate that was live at deposit
+        // time — there is no window in which the two could disagree.
+        RATE_FEED.observe();
 
         depositId = depositCount++;
         emit RemittanceDeposited(msg.sender, receiver, amount, depositId);

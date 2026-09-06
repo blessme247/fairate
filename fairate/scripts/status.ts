@@ -1,6 +1,6 @@
 import { Contract, ethers } from 'ethers';
 
-import FairateUSDABI from '../contracts/abi/FairateUSD.json';
+import FairateNGNABI from '../contracts/abi/FairateNGN.json';
 import RemittanceEscrowABI from '../contracts/abi/RemittanceEscrow.json';
 import { loadConfig } from './config';
 
@@ -14,7 +14,7 @@ async function main(): Promise<void> {
     throw new Error(`"${String(address)}" is not a valid address`);
   }
 
-  const payoutToken = new Contract(config.addresses.payoutToken, FairateUSDABI, config.creditcoinProvider);
+  const payoutToken = new Contract(config.addresses.payoutToken, FairateNGNABI, config.creditcoinProvider);
   const escrow = new Contract(config.addresses.escrow, RemittanceEscrowABI, config.creditcoinProvider);
 
   const [symbol, balance, reputation] = await Promise.all([

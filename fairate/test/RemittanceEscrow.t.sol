@@ -4,7 +4,7 @@ pragma solidity ^0.8.23;
 import {Test} from "forge-std/Test.sol";
 import {RemittanceEscrowHarness} from "./harness/RemittanceEscrowHarness.sol";
 import {RemittanceEscrow} from "../contracts/sol/RemittanceEscrow.sol";
-import {FairateUSD} from "../contracts/sol/FairateUSD.sol";
+import {FairateNGN} from "../contracts/sol/FairateNGN.sol";
 import {EvmV1Decoder} from "@gluwa/asc-contracts/contracts/common/EvmV1Decoder.sol";
 
 contract RemittanceEscrowTest is Test {
@@ -71,14 +71,14 @@ contract RemittanceEscrowTest is Test {
     // --- corridor allowlist ---------------------------------------------------------------
 
     function testRegisterCorridor_requiresEscrowHoldsMinterRole() public {
-        FairateUSD strayToken = new FairateUSD(address(0xBAD));
+        FairateNGN strayToken = new FairateNGN(address(0xBAD));
 
         vm.expectRevert(RemittanceEscrow.EscrowNotMinter.selector);
         escrow.registerCorridor(SOURCE_DEPOSIT, address(strayToken));
     }
 
     function testRegisterCorridor_succeedsAndIsSingleUse() public {
-        FairateUSD token = new FairateUSD(address(escrow));
+        FairateNGN token = new FairateNGN(address(escrow));
 
         escrow.registerCorridor(SOURCE_DEPOSIT, address(token));
         assertEq(escrow.corridors(SOURCE_DEPOSIT), address(token));
@@ -88,7 +88,7 @@ contract RemittanceEscrowTest is Test {
     }
 
     function testRegisterCorridor_onlyAdmin() public {
-        FairateUSD token = new FairateUSD(address(escrow));
+        FairateNGN token = new FairateNGN(address(escrow));
 
         vm.prank(address(0xBEEF));
         vm.expectRevert(RemittanceEscrow.NotAdmin.selector);

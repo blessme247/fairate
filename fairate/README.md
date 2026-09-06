@@ -6,12 +6,38 @@ modules so the same Foundry and pnpm workflow applies.
 ```
 contracts/sol/
   MockUSD.sol               # Sepolia  — mock stablecoin the sender remits
-  FairateDeposit.sol        # Sepolia  — locks funds, emits RemittanceDeposited
+  FairateRateFeed.sol       # Sepolia  — reads Chainlink, emits the rate so it can be attested
+  FairateDeposit.sol        # Sepolia  — locks funds, emits RemittanceDeposited + the rate
+  DemoAggregator.sol        # Sepolia  — DEMO ONLY, a hand-settable feed for showing rate changes
   FairateMintableToken.sol  # CC3      — ERC20 base, mintable only by the ASC
-  FairateUSD.sol            # CC3      — the payout token (fUSD)
-  RemittanceEscrow.sol      # CC3      — the ASC: proves the deposit, pays out, scores reputation
-test/                       # 16 tests, no network access required
+  FairateNGN.sol            # CC3      — the payout token (fNGN)
+  RemittanceEscrow.sol      # CC3      — the ASC: proves the deposit, prices it, pays out, scores
+test/                       # 28 tests, no network access required
 ```
+
+## How the FX rate gets attested
+
+Creditcoin cannot call a Sepolia contract, so a price cannot be _read_ across chains. The only
+cross-chain channel is "prove a transaction happened", and what a transaction leaves behind to
+prove is its logs. `FairateRateFeed.observe()` therefore reads Chainlink and _emits_ the answer,
+turning a price into an attestable fact.
+
+`FairateDeposit.deposit()` calls it inline, so a single Sepolia receipt carries both logs:
+
+```
+one Sepolia transaction
+  ├── RateObserved(rate, decimals, updatedAt)      ← from FairateRateFeed
+  └── RemittanceDeposited(sender, receiver, …)     ← from FairateDeposit
+        │
+        └── one attestation, one proof, one execute() on Creditcoin
+              payout = amount * rate / 10**decimals
+```
+
+Both facts ride in one proof, so the rate cannot drift from the deposit it prices — there is no
+window in which a deposit is attested at one rate and released at another, and no second
+8-minute attestation wait. Staleness is enforced on Sepolia inside `observe()` (24h bound), the
+only place with a trustworthy clock for that chain; a stale feed reverts the deposit rather than
+paying out at a rate nobody vouched for.
 
 ## Why the deposit event shape matters
 

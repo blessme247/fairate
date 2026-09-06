@@ -8,10 +8,16 @@ Deployer / demo wallet: `0x42a50d325FA26D49282cd4CECe122B45E54927c3`
 
 The chain a sender deposits on. Attestcoin's source chain key for Sepolia is `1`.
 
-| Contract         | Address                                                                                                                         | Purpose                                                                               |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `MockUSD` (mUSD) | [`0xB7D53a4b25fbA61be33F709e460432B1FAE3c7Ba`](https://sepolia.etherscan.io/address/0xB7D53a4b25fbA61be33F709e460432B1FAE3c7Ba) | Mock stablecoin the sender remits. Open `mint()` so a demo sender can self-fund.      |
-| `FairateDeposit` | [`0xE85FF6eA57A0c4D47E12c6B7B236b7087A2b7c88`](https://sepolia.etherscan.io/address/0xE85FF6eA57A0c4D47E12c6B7B236b7087A2b7c88) | Locks mUSD and emits `RemittanceDeposited` — the single event the payout side proves. |
+| Contract                         | Address                                                                                                                         | Purpose                                                                                              |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `MockUSD` (mUSD)                 | [`0xB7D53a4b25fbA61be33F709e460432B1FAE3c7Ba`](https://sepolia.etherscan.io/address/0xB7D53a4b25fbA61be33F709e460432B1FAE3c7Ba) | Mock stablecoin the sender remits. Open `mint()` so a demo sender can self-fund.                     |
+| `FairateRateFeed`                | [`0xb584bD48014CbA23dC9F913831Fc90067Bb718b5`](https://sepolia.etherscan.io/address/0xb584bD48014CbA23dC9F913831Fc90067Bb718b5) | Reads the real Chainlink ETH/USD aggregator and emits `RateObserved` so the reading can be attested. |
+| `FairateDeposit`                 | [`0x25A71B8Dd77abDb9Cf37cbb8B831476D6b29ee63`](https://sepolia.etherscan.io/address/0x25A71B8Dd77abDb9Cf37cbb8B831476D6b29ee63) | Locks mUSD and emits `RemittanceDeposited` alongside the rate, in one receipt.                       |
+| `DemoAggregator`                 | [`0xa10Fe3792081393858C492fc19b36AD7222ce62B`](https://sepolia.etherscan.io/address/0xa10Fe3792081393858C492fc19b36AD7222ce62B) | **Demo only.** Hand-settable feed used to prove payouts track the rate. Not in the real corridor.    |
+| `FairateDeposit` (demo corridor) | [`0x63BA154f35A679752C16F8CDf46a87b5c9D993cf`](https://sepolia.etherscan.io/address/0x63BA154f35A679752C16F8CDf46a87b5c9D993cf) | Second corridor wired to `DemoAggregator` via its own `FairateRateFeed` at `0xd6Dc3b2F…9dc6`.        |
+
+Superseded by the Day 6 redeploy (kept for the Day 5 transfer history):
+`FairateDeposit` `0xE85FF6eA…7c88` — the pre-FX version, no rate log.
 
 Deploy transactions:
 
@@ -81,6 +87,27 @@ Post-settlement state:
 | `reputation(0xc4635B…Fe00)`  | 0 sent / 1 received, 75 received volume                     |
 
 Measured attestation latency: ~4-8 minutes per transfer.
+
+## FX-rate attestation (Day 6)
+
+The same 100 mUSD deposit, released at two different attested rates:
+
+| Deposit           | Attested rate | Deposited | Paid out         |
+| ----------------- | ------------- | --------- | ---------------- |
+| `0x039debd7…4718` | 1500.00       | 100 mUSD  | **150,000 fNGN** |
+| `0x9d8ae863…8521` | 1650.00       | 100 mUSD  | **165,000 fNGN** |
+
+And against the real Chainlink ETH/USD feed:
+
+| Deposit           | Attested rate | Deposited | Paid out             |
+| ----------------- | ------------- | --------- | -------------------- |
+| `0x4724e2d5…4915` | 2494.2019     | 250 mUSD  | **623,550.475 fNGN** |
+
+`fNGN.totalSupply()` = `938550475000000000000000` = 623,550.475 + 150,000 + 165,000, exactly.
+
+The rate is not supplied by whoever calls `execute` — it is decoded from a `RateObserved` log in
+the same attested receipt as the deposit, so it is the rate that was live on Sepolia at deposit
+time. Payout is `amount * rate / 10**rateDecimals`.
 
 ## Reproducing
 

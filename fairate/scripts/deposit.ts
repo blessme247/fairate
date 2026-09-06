@@ -2,6 +2,7 @@ import { Contract, ethers } from 'ethers';
 
 import FairateDepositABI from '../contracts/abi/FairateDeposit.json';
 import MockUSDABI from '../contracts/abi/MockUSD.json';
+import FairateRateFeedABI from '../contracts/abi/FairateRateFeed.json';
 import { loadConfig } from './config';
 
 /**
@@ -57,7 +58,15 @@ async function main(): Promise<void> {
     console.log(`Approved. tx ${approveTx.hash}`);
   }
 
-  console.log('\nDepositing...');
+  const rateFeed = new Contract(config.addresses.rateFeed, FairateRateFeedABI, config.sourceProvider);
+  const [rate, rateDecimals] = await rateFeed.peek();
+  const humanRate = ethers.formatUnits(rate, rateDecimals);
+  console.log(`Live Chainlink rate: ${humanRate}`);
+  console.log(
+    `Expected payout:     ~${(Number(ethers.formatEther(amount)) * Number(humanRate)).toLocaleString()} fNGN\n`
+  );
+
+  console.log('Depositing...');
   const depositTx = await depositContract.deposit(receiver, amount);
   const receipt = await depositTx.wait();
 

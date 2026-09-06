@@ -4,10 +4,14 @@ pragma solidity ^0.8.23;
 import {Test} from "forge-std/Test.sol";
 import {FairateDeposit} from "../contracts/sol/FairateDeposit.sol";
 import {MockUSD} from "../contracts/sol/MockUSD.sol";
+import {FairateRateFeed} from "../contracts/sol/FairateRateFeed.sol";
+import {MockAggregator} from "./harness/MockAggregator.sol";
 
 contract FairateDepositTest is Test {
     FairateDeposit internal depositContract;
     MockUSD internal stablecoin;
+    FairateRateFeed internal rateFeed;
+    MockAggregator internal aggregator;
 
     address internal constant RECEIVER = address(0xB0B);
 
@@ -17,7 +21,9 @@ contract FairateDepositTest is Test {
 
     function setUp() public {
         stablecoin = new MockUSD();
-        depositContract = new FairateDeposit(address(stablecoin));
+        aggregator = new MockAggregator(2494_20190000, 8); // 2494.20190000, as Sepolia reads today
+        rateFeed = new FairateRateFeed(address(aggregator));
+        depositContract = new FairateDeposit(address(stablecoin), address(rateFeed));
         stablecoin.approve(address(depositContract), type(uint256).max);
     }
 
