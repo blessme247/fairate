@@ -10,6 +10,8 @@
     "fairate:deposit": "tsx fairate/scripts/deposit.ts",
     "fairate:release": "tsx fairate/scripts/release.ts",
     "fairate:settle-batch": "tsx fairate/scripts/settle_batch.ts",
+    "fairate:api": "tsx fairate/server/api.ts",
+    "fairate:web": "vite --config fairate/web/vite.config.ts",
     "fairate:status": "tsx fairate/scripts/status.ts",
     "loan_flow:authorize_token": "tsx loan/scripts/authorize.ts",
     "loan_flow:register_source_contract": "tsx loan/scripts/register_source_contract.ts",
@@ -22,22 +24,28 @@
     "utils:check_balance": "tsx shared/utils/check_balance.js",
     "utils:check_setup": "tsx shared/check_setup.ts",
     "check-format": "prettier --check .",
-    "eslint": "eslint -c .eslintrc.js --ignore-pattern .eslintrc.js --ignore-pattern check_balance.js --ignore-pattern vendor/** --max-warnings 0 --ext .ts --ext .js .",
+    "eslint": "eslint -c .eslintrc.js --ignore-pattern .eslintrc.js --ignore-pattern check_balance.js --ignore-pattern vendor/** --ignore-pattern 'fairate/web/**' --max-warnings 0 --ext .ts --ext .js .",
     "format": "prettier --write .",
     "build": "forge build --root bridge && forge build --root loan",
     "test": "forge test --root bridge && forge test --root loan",
     "test:contracts": "forge test --root bridge && forge test --root loan",
     "verify": "pnpm typecheck && pnpm eslint && pnpm build && pnpm test:contracts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p fairate/web/tsconfig.json"
   },
   "devDependencies": {
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
     "@typescript-eslint/eslint-plugin": "8.62.1",
     "@typescript-eslint/parser": "8.62.1",
+    "@vitejs/plugin-react": "^4.7.0",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.9.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "tsx": "^4.22.4",
-    "typescript": "6.0.2"
+    "typescript": "6.0.2",
+    "vite": "^6.4.3"
   },
   "dependencies": {
     "@gluwa/asc-contracts": "0.2.1",

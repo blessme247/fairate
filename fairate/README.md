@@ -101,6 +101,27 @@ wire format: 3 topics (signature, sender, receiver) and 64 bytes of data (amount
 tutorial's `ASCMinter` does for its burn event. Change the event and the payout side stops
 recognising deposits — `testDepositEventSignatureMatchesSourceContract` fails loudly if you do.
 
+## Web UI
+
+```sh
+pnpm fairate:api    # signing + proof generation (needs bridge/.env)
+pnpm fairate:web    # http://localhost:5173
+```
+
+Two processes because proof generation needs the Node SDK. The alternative — shipping a private
+key into the browser bundle — is the pattern this project argues against, so the browser drives
+the corridor and signing stays server-side.
+
+The API is **not** a trusted intermediary. Releasing is permissionless: anyone can generate the
+same proof and call the same contract, and the escrow would reject a forged one from this server
+exactly as it would from anyone else.
+
+Connect a wallet to sign deposits yourself (the UI switches you to Sepolia, adding it if needed),
+or use the demo wallet toggle, which signs with the server's key — useful for judges without
+MetaMask. After a payout, **Show in wallet** adds the Creditcoin network and registers fNGN, which
+is otherwise invisible: it lives on a different chain than the one the sender is connected to, and
+wallets do not display unregistered ERC-20s.
+
 ## Batch settlement
 
 `ASCBase` only exposes a single-transaction `execute`, so `RemittanceEscrow.executeBatch` calls the

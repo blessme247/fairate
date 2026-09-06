@@ -10,10 +10,17 @@
         "allowSyntheticDefaultImports": true,
         "resolveJsonModule": true
     },
-    "exclude": ["node_modules", "**/__tests__/*", "dist", "vendor"],
-
+    "exclude": [
+        "node_modules",
+        "**/__tests__/*",
+        "dist",
+        "vendor",
+        "fairate/web"
+    ],
     "ts-node": {
-        "require": ["tsconfig-paths/register"],
+        "require": [
+            "tsconfig-paths/register"
+        ],
         "compilerOptions": {
             "rootDir": "."
         }

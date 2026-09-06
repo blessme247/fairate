@@ -1,0 +1,88 @@
+/*
+ * Fairate UI tokens.
+ *
+ * Personality: crisp financial dashboard, not a playful consumer app. Motion is fast and
+ * restrained — every duration below 300ms, ease-out on anything entering, no bounce.
+ */
+
+:root {
+  /* Custom curves: the built-in CSS easings are too weak to read as intentional. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+
+  --bg: #f7f7f8;
+  --surface: #ffffff;
+  --surface-sunken: #fafafa;
+  --border: #e6e6e9;
+  --border-strong: #d4d4d9;
+  --text: #16161a;
+  --text-muted: #6b6b76;
+  --text-faint: #9a9aa4;
+
+  --accent: #1d6f4f;
+  --accent-soft: #e8f3ee;
+  --accent-border: #b8ddca;
+
+  --warn: #8a6218;
+  --warn-soft: #fdf5e3;
+  --danger: #a32c2c;
+  --danger-soft: #fceded;
+
+  --radius: 10px;
+  --radius-sm: 7px;
+
+  --font: ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, system-ui, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e0e10;
+    --surface: #17171a;
+    --surface-sunken: #121214;
+    --border: #26262b;
+    --border-strong: #34343b;
+    --text: #f0f0f2;
+    --text-muted: #a0a0ab;
+    --text-faint: #6e6e78;
+
+    --accent: #4ade9f;
+    --accent-soft: #14251d;
+    --accent-border: #23503c;
+
+    --warn: #e9c46a;
+    --warn-soft: #262013;
+    --danger: #f08a8a;
+    --danger-soft: #2a1717;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Reduced motion means gentler, not zero — opacity stays, movement goes. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 120ms !important;
+  }
+}

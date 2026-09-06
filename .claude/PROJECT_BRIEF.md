@@ -232,6 +232,18 @@ checkpoint isn't met, use the descope order at the bottom before slipping the de
   Hardcoded testnet wallet is fine — skip wallet-connect polish.
   *Checkpoint: a full transfer can be initiated and tracked from the UI without touching the
   CLI.*
+  **Status 2026-09-07: checkpoint met, one item outstanding.** `pnpm fairate:api` +
+  `pnpm fairate:web` give a one-page send form, a four-stage tracker driven by real oracle lag,
+  a live rate card, and a credit-record lookup. A full transfer runs end to end without the CLI.
+  **Went beyond the brief on wallets:** rather than a hardcoded key in the browser, the UI does
+  real wallet connect (deposit signed by the user) with the demo wallet kept as a toggle for
+  judges without MetaMask. Signing a key into a client bundle would contradict the project's own
+  security argument.
+  **Still to do: the batch view.** `executeBatch` works and is proven on-chain, but the UI has no
+  way to select several pending transfers and settle them together. Lowest-value remaining item —
+  descope it before touching the README or the demo.
+  **Known rough edge:** "Show in wallet" does not always leave MetaMask on Creditcoin, so the
+  balance can require a manual network switch. Cosmetic, but check it before recording.
 - **Day 9 — Polish + buffer.** Fix anything broken from Days 5–8. Write `README.md` explaining:
   what the project does, why Attestcoin is core (not bolted on), how the reputation layer ties to
   Creditcoin's own thesis, and how the FX-rate attestation works. This README is directly scored
