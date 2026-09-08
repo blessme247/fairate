@@ -35,19 +35,19 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p fairate/web/tsconfig.json"
   },
   "devDependencies": {
-    "@types/react": "^18.3.31",
-    "@types/react-dom": "^18.3.7",
-    "@typescript-eslint/eslint-plugin": "8.62.1",
-    "@typescript-eslint/parser": "8.62.1",
-    "@vitejs/plugin-react": "^4.7.0",
-    "eslint": "^8.57.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@typescript-eslint/eslint-plugin": "8.69.0",
+    "@typescript-eslint/parser": "8.69.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "eslint": "^10.10.0",
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.9.4",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
     "tsx": "^4.22.4",
-    "typescript": "6.0.2",
-    "vite": "^6.4.3"
+    "typescript": "7.0.2",
+    "vite": "^8.2.2"
   },
   "dependencies": {
     "@gluwa/asc-contracts": "0.2.1",
