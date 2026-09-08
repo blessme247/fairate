@@ -4,6 +4,11 @@ type Props = {
   transfers: Transfer[];
   attestation: AttestationInfo | null;
   explorers?: { source: string; creditcoin: string };
+  selected: Set<string>;
+  onToggleSelect: (id: string) => void;
+  onSettleBatch: () => Promise<void>;
+  batching: boolean;
+  batchError: string | null;
 };
 
 const STEPS = ['Deposited', 'Rate attested', 'Deposit attested', 'Released'] as const;
@@ -18,6 +23,8 @@ const STEPS = ['Deposited', 'Rate attested', 'Deposit attested', 'Released'] as 
 function stageOf(transfer: Transfer): number {
   if (transfer.status === 'released') return 4;
   if (transfer.status === 'failed') return -1;
+  // A queued transfer is deposited and priced, but deliberately not being proved yet.
+  if (transfer.status === 'queued') return 2;
   return 2;
 }
 
@@ -30,7 +37,18 @@ function attestationProgress(transfer: Transfer, attestation: AttestationInfo | 
   return Math.min(0.95, Math.max(0.04, 1 - remaining / 45));
 }
 
-export function TransferTimeline({ transfers, attestation, explorers }: Props) {
+export function TransferTimeline({
+  transfers,
+  attestation,
+  explorers,
+  selected,
+  onToggleSelect,
+  onSettleBatch,
+  batching,
+  batchError,
+}: Props) {
+  const queued = transfers.filter((transfer) => transfer.status === 'queued');
+
   return (
     <section className="card">
       <div className="card-head">
@@ -71,9 +89,7 @@ export function TransferTimeline({ transfers, attestation, explorers }: Props) {
                       {Number(transfer.rate).toLocaleString(undefined, { maximumFractionDigits: 4 })}
                     </div>
                   </div>
-                  <span className={`status status-${transfer.status}`}>
-                    {transfer.status === 'attesting' ? 'attesting' : transfer.status}
-                  </span>
+                  <span className={`status status-${transfer.status}`}>{transfer.status}</span>
                 </div>
 
                 <ol className="steps" data-stage={stage}>
@@ -89,7 +105,7 @@ export function TransferTimeline({ transfers, attestation, explorers }: Props) {
                   })}
                 </ol>
 
-                {stage === 2 && (
+                {stage === 2 && transfer.status !== 'queued' && (
                   <div
                     className="progress"
                     role="progressbar"
@@ -99,6 +115,19 @@ export function TransferTimeline({ transfers, attestation, explorers }: Props) {
                   >
                     <div className="progress-fill" style={{ transform: `scaleX(${progress})` }} />
                   </div>
+                )}
+
+                {transfer.status === 'queued' && (
+                  <p className="transfer-queued">
+                    Held for batch settlement — select it and settle together to share one proof.
+                  </p>
+                )}
+
+                {transfer.batch && (
+                  <p className="transfer-batch">
+                    Settled in a batch of {transfer.batch.size} · {Number(transfer.batch.gasUsed).toLocaleString()} gas
+                    total · {Number(transfer.batch.gasPerTransfer).toLocaleString()} each
+                  </p>
                 )}
 
                 {transfer.error && <p className="transfer-error">{transfer.error}</p>}
@@ -120,6 +149,33 @@ export function TransferTimeline({ transfers, attestation, explorers }: Props) {
           })}
         </ul>
       )}
+
+      {queued.length > 0 && (
+        <div className="batchbar" role="region" aria-label="Batch settlement">
+          <div className="batchbar-text">
+            <strong>
+              {selected.size} of {queued.length} queued selected
+            </strong>
+            <span>
+              {selected.size >= 2
+                ? 'They will share one continuity proof, in a single verification.'
+                : 'Select at least two to settle them together.'}
+            </span>
+          </div>
+          <button
+            className="button button-primary button-batch"
+            type="button"
+            disabled={selected.size < 2 || batching}
+            onClick={() => void onSettleBatch()}
+          >
+            <span className={batching ? 'button-label is-busy' : 'button-label'}>
+              {batching ? 'Settling…' : 'Settle together'}
+            </span>
+          </button>
+        </div>
+      )}
+
+      {batchError && <p className="form-error batch-error">{batchError}</p>}
     </section>
   );
 }

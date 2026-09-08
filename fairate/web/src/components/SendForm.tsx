@@ -7,7 +7,7 @@ type Props = {
   rate: RateInfo | null;
   sender?: string;
   account: string | null;
-  onSend: (receiver: string, amount: string, useWallet: boolean) => Promise<void>;
+  onSend: (receiver: string, amount: string, useWallet: boolean, queue: boolean) => Promise<void>;
   walletStep: DepositProgress | null;
   onConnect: () => Promise<void>;
   walletAvailable: boolean;
@@ -27,6 +27,7 @@ export function SendForm({ rate, sender, account, onSend, walletStep, onConnect,
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [useWallet, setUseWallet] = useState(true);
+  const [queue, setQueue] = useState(false);
 
   // Signing with your own wallet is only possible once one is connected.
   const signWithWallet = useWallet && Boolean(account);
@@ -47,7 +48,7 @@ export function SendForm({ rate, sender, account, onSend, walletStep, onConnect,
     setBusy(true);
     setError(null);
     try {
-      await onSend(receiver, amount, signWithWallet);
+      await onSend(receiver, amount, signWithWallet, queue);
       setReceiver('');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
@@ -145,11 +146,25 @@ export function SendForm({ rate, sender, account, onSend, walletStep, onConnect,
           </div>
         </div>
 
+        <label className="checkline">
+          <input type="checkbox" checked={queue} onChange={(event) => setQueue(event.target.checked)} />
+          <span>
+            Queue for batch settlement
+            <em>Hold it back so several transfers can share one proof.</em>
+          </span>
+        </label>
+
         {error && <p className="form-error">{error}</p>}
 
         <button className="button button-primary" type="submit" disabled={!valid || busy}>
           <span className={busy ? 'button-label is-busy' : 'button-label'}>
-            {busy ? (walletStep ? STEP_LABEL[walletStep] : 'Locking funds…') : 'Send transfer'}
+            {busy
+              ? walletStep
+                ? STEP_LABEL[walletStep]
+                : 'Locking funds…'
+              : queue
+                ? 'Queue transfer'
+                : 'Send transfer'}
           </span>
         </button>
         <p className="form-hint">

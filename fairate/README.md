@@ -108,6 +108,20 @@ pnpm fairate:api    # signing + proof generation (needs bridge/.env)
 pnpm fairate:web    # http://localhost:5173
 ```
 
+The transfer list is a cache, never the source of truth, so the API **rebuilds it from chain logs
+on every startup** — `RemittanceDeposited` on Sepolia matched against `TransferReleased` on
+Creditcoin by (receiver, depositId). Anything deposited without a matching release comes back as
+queued, so restarting mid-flight no longer strands funds that are locked and still settleable.
+Batches are recognised by counting release events per transaction, so restored rows keep their
+real gas figures.
+
+Two RPC quirks shape that scan, both worth knowing before pointing this at a different provider:
+Infura's free tier caps `eth_getLogs` at **10 blocks** (so log scanning uses a separate
+`FAIRATE_LOGS_RPC_URL`, defaulting to a public endpoint that allows wide ranges), and Creditcoin
+enforces a **10-second query timeout** rather than a range cap, so its chunks are much smaller.
+Scans start at the contracts' deployment blocks rather than a rolling window — a fixed lookback
+silently starts missing the earliest transfers once the chain advances past it.
+
 Two processes because proof generation needs the Node SDK. The alternative — shipping a private
 key into the browser bundle — is the pattern this project argues against, so the browser drives
 the corridor and signing stays server-side.
@@ -129,9 +143,16 @@ verifier precompile's array overload directly. One continuity proof — the chai
 roots back to a known endpoint — covers every deposit in the range, so per-deposit cost falls to a
 Merkle inclusion check:
 
+From the CLI:
+
 ```sh
 pnpm fairate:settle-batch <txHash> <txHash> <txHash>
 ```
+
+From the UI: tick **Queue for batch settlement** when sending, so the deposit is held rather than
+settled on its own. Queued transfers appear with a checkbox; select two or more and press
+**Settle together**. Each settled transfer then shows the batch it belonged to and the gas it
+actually cost, so the saving is visible rather than claimed.
 
 Security is deliberately identical to the single path. Query ids are deduped _before_ verification
 (including against duplicates within the same batch), the precompile verifies the whole batch

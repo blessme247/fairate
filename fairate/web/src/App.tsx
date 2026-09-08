@@ -48,6 +48,9 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
   const [failures, setFailures] = useState(0);
   const [walletStep, setWalletStep] = useState<DepositProgress | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [batching, setBatching] = useState(false);
+  const [batchError, setBatchError] = useState<string | null>(null);
   const wallet = useWallet();
 
   const refresh = useCallback(async () => {
@@ -97,7 +100,7 @@ export function App() {
   }, [focusAddress, transfers]);
 
   const onSend = useCallback(
-    async (receiver: string, amount: string, signWithWallet: boolean) => {
+    async (receiver: string, amount: string, signWithWallet: boolean, queue: boolean) => {
       let transfer;
 
       if (signWithWallet && config) {
@@ -111,12 +114,12 @@ export function App() {
             amount,
             setWalletStep
           );
-          ({ transfer } = await api.track(txHash));
+          ({ transfer } = await api.track(txHash, queue));
         } finally {
           setWalletStep(null);
         }
       } else {
-        ({ transfer } = await api.deposit(receiver, amount));
+        ({ transfer } = await api.deposit(receiver, amount, queue));
       }
 
       setTransfers((current) => [transfer, ...current.filter((t) => t.id !== transfer.id)]);
@@ -125,6 +128,40 @@ export function App() {
     },
     [refresh, config]
   );
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelected((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const settleBatch = useCallback(async () => {
+    setBatching(true);
+    setBatchError(null);
+    try {
+      await api.settleBatch([...selected]);
+      setSelected(new Set());
+      void refresh();
+    } catch (cause) {
+      setBatchError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setBatching(false);
+    }
+  }, [selected, refresh]);
+
+  // Drop selections for transfers that are no longer queued, so the count cannot go stale.
+  useEffect(() => {
+    const queuedIds = new Set(
+      transfers.filter((transfer) => transfer.status === 'queued').map((transfer) => transfer.id)
+    );
+    setSelected((current) => {
+      const next = new Set([...current].filter((id) => queuedIds.has(id)));
+      return next.size === current.size ? current : next;
+    });
+  }, [transfers]);
 
   return (
     <div className="shell">
@@ -165,7 +202,16 @@ export function App() {
         </div>
 
         <div className="column">
-          <TransferTimeline transfers={transfers} attestation={attestation} explorers={config?.explorers} />
+          <TransferTimeline
+            transfers={transfers}
+            attestation={attestation}
+            explorers={config?.explorers}
+            selected={selected}
+            onToggleSelect={toggleSelect}
+            onSettleBatch={settleBatch}
+            batching={batching}
+            batchError={batchError}
+          />
           <ReputationCard
             status={status}
             onWatch={setWatched}

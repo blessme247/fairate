@@ -1,4 +1,11 @@
-export type TransferStatus = 'deposited' | 'attesting' | 'released' | 'failed';
+export type TransferStatus = 'queued' | 'deposited' | 'attesting' | 'released' | 'failed';
+
+export type BatchSummary = {
+  tx: string;
+  size: number;
+  gasUsed: string;
+  gasPerTransfer: string;
+};
 
 export type Transfer = {
   id: string;
@@ -13,6 +20,7 @@ export type Transfer = {
   payout?: string;
   error?: string;
   createdAt: number;
+  batch?: BatchSummary;
 };
 
 export type RateInfo = {
@@ -62,14 +70,19 @@ export const api = {
   transfers: () => request<{ transfers: Transfer[] }>('/api/transfers'),
   status: (address?: string) => request<StatusInfo>(`/api/status${address ? `?address=${address}` : ''}`),
   config: () => request<ConfigInfo>('/api/config'),
-  track: (txHash: string) =>
+  track: (txHash: string, queue = false) =>
     request<{ transfer: Transfer }>('/api/track', {
       method: 'POST',
-      body: JSON.stringify({ txHash }),
+      body: JSON.stringify({ txHash, queue }),
     }),
-  deposit: (receiver: string, amount: string) =>
+  deposit: (receiver: string, amount: string, queue = false) =>
     request<{ transfer: Transfer }>('/api/deposit', {
       method: 'POST',
-      body: JSON.stringify({ receiver, amount }),
+      body: JSON.stringify({ receiver, amount, queue }),
+    }),
+  settleBatch: (ids: string[]) =>
+    request<{ batched: number }>('/api/settle-batch', {
+      method: 'POST',
+      body: JSON.stringify({ ids }),
     }),
 };
