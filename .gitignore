@@ -40,3 +40,8 @@ vendor/
 .agents/
 .claude/skills/
 skills-lock.json
+
+# Cloudflare local dev secrets
+.dev.vars
+**/.dev.vars
+.wrangler/

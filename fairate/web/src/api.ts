@@ -54,8 +54,17 @@ export type ConfigInfo = {
   explorers: { source: string; creditcoin: string };
 };
 
+/**
+ * Where the API lives.
+ *
+ * Empty in development, so Vite's proxy handles `/api/*`. In a deployed build the UI and the API
+ * are on different hosts — the UI is static and the API needs a long-running Node process — so
+ * this is baked in at build time via VITE_API_BASE_URL.
+ */
+const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '');
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(path, {
+  const response = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
   });

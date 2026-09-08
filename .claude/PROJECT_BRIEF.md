@@ -255,6 +255,35 @@ checkpoint isn't met, use the descope order at the bottom before slipping the de
   DoraHacks with buffer time before the deadline.
   *Checkpoint: submitted, with time to spare in case of platform issues.*
 
+## Deployment (added 2026-09-08 — never scoped in the original brief)
+
+The submission requires a **live URL**. This was not in the brief and was not raised during the
+build, so the architecture was designed for localhost: a static UI plus a Node API that signs
+transactions and runs an 8–10 minute settlement wait.
+
+**Cloudflare Workers cannot host the API.** Tested directly with a spike, not assumed:
+
+| Component in workerd | Result |
+|---|---|
+| ethers v6 JSON-RPC | works |
+| SDK `PrecompileChainInfoProvider` | works |
+| SDK `ProofBuilder.getProof` | **fails** — `TypeError: Unsupported cache mode: default` |
+
+`@gluwa/usc-sdk` uses axios, whose fetch adapter builds a `Request` with a cache mode workerd
+rejects. Wrapping `globalThis.fetch` does not help, because the throw happens in the `Request`
+constructor before fetch is called. The same call succeeds in Node. Separately, a plain Worker
+cannot hold an 8–10 minute settlement wait anyway — that would need Durable Object alarms or
+Workflows.
+
+**Chosen split:** static UI on Cloudflare (which the team already uses), API on a container host
+that allows a long-running process. The chain-log backfill added the same day makes this safe on a
+free tier that sleeps — a cold start rebuilds full state in ~6s.
+
+**The deployed API signs with a dedicated relayer wallet** (`0x573884944A535F2e65226B2dE79356588b8af6F9`),
+not the deployer. It needs no privileges: `execute` is permissionless and `MockUSD.mint` is open, so
+a leaked host secret can post transactions but can never mint, register a corridor, or touch admin
+functions.
+
 ## Security rules — API keys and secrets
 
 This repo will be public (hackathon submission requirement), so treat every rule below as

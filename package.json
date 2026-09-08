@@ -12,6 +12,8 @@
     "fairate:settle-batch": "tsx fairate/scripts/settle_batch.ts",
     "fairate:api": "tsx fairate/server/api.ts",
     "fairate:web": "vite --config fairate/web/vite.config.ts",
+    "fairate:web:build": "vite build --config fairate/web/vite.config.ts",
+    "fairate:web:deploy": "pnpm fairate:web:build && wrangler deploy --config fairate/web/wrangler.jsonc",
     "fairate:status": "tsx fairate/scripts/status.ts",
     "loan_flow:authorize_token": "tsx loan/scripts/authorize.ts",
     "loan_flow:register_source_contract": "tsx loan/scripts/register_source_contract.ts",

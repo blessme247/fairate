@@ -74,10 +74,14 @@ export type FairateConfig = {
  * surfacing as an opaque SDK error ten minutes into an attestation wait.
  */
 export function loadConfig(): FairateConfig {
-  const privateKey = process.env.CREDITCOIN_WALLET_PRIVATE_KEY;
+  // A deployed instance signs with RELAYER_PRIVATE_KEY: a wallet holding gas and nothing else.
+  // It needs no privileges — `execute` is permissionless and MockUSD.mint is open — so a leaked
+  // host secret can post transactions but can never mint, register a corridor, or reach an admin
+  // function. Locally this falls back to the deployer key so nothing changes for CLI use.
+  const privateKey = process.env.RELAYER_PRIVATE_KEY || process.env.CREDITCOIN_WALLET_PRIVATE_KEY;
   if (!isValidPrivateKey(privateKey)) {
     throw new Error(
-      'CREDITCOIN_WALLET_PRIVATE_KEY is missing or malformed. It must include the 0x prefix (66 chars total).'
+      'No signing key configured. Set RELAYER_PRIVATE_KEY (deployed) or CREDITCOIN_WALLET_PRIVATE_KEY (local), including the 0x prefix.'
     );
   }
 

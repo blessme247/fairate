@@ -23,17 +23,22 @@ import { loadConfig, RELEASE_ACTION } from '../scripts/config';
  * from anyone else.
  */
 
-const PORT = Number(process.env.FAIRATE_API_PORT ?? 8787);
+// Render (and most hosts) inject PORT and expect the process to bind it on 0.0.0.0.
+const PORT = Number(process.env.PORT ?? process.env.FAIRATE_API_PORT ?? 8787);
+const HOST = process.env.FAIRATE_API_HOST ?? '0.0.0.0';
 const config = loadConfig();
 
 /**
  * Separate endpoint for scanning historical logs.
  *
- * `eth_getLogs` range limits are a billing-plan policy, not a chain property: Infura's free tier
- * caps them at *10 blocks*, which makes a history scan impossible there while ordinary calls work
- * fine. Log scanning therefore defaults to a public endpoint that allows wide ranges, and stays
- * overridable. This reads public data only — no key, no signing, and nothing here can send a
- * transaction.
+ * `eth_getLogs` limits are a billing-plan policy, not a chain property — Infura's free tier caps
+ * ranges at 10 blocks, which makes a history scan impractical there while ordinary calls work
+ * fine. Point this at an archive-capable endpoint (Alchemy's free tier works) to enable history
+ * restore; it reads public data only and can never sign anything.
+ *
+ * Deliberately defaults to the main RPC rather than a public endpoint: the obvious free ones prune
+ * history and answer with a *partial* result instead of an error, which is worse than failing —
+ * it looks complete. `verifyHistoryComplete` exists because of exactly that.
  */
 const LOGS_RPC_URL = process.env.FAIRATE_LOGS_RPC_URL ?? 'https://ethereum-sepolia-rpc.publicnode.com';
 
@@ -114,6 +119,8 @@ const transfers = new Map<string, TransferRecord>();
 
 /** True while the startup backfill is still running, so the UI can say "restoring" not "empty". */
 let restoring = true;
+/** False when the log scan provably missed history, so nothing presents a partial list as whole. */
+let historyComplete = true;
 
 /**
  * How far back to look on each chain. The corridor contracts are days old, so these windows cover
@@ -249,6 +256,18 @@ async function backfill(): Promise<void> {
       gasUsed: receipt.gasUsed.toString(),
       gasPerTransfer: (receipt.gasUsed / BigInt(size)).toString(),
     });
+  }
+
+  // The contract counts its own deposits, so the scan can be checked rather than trusted. Pruning
+  // providers return a short list instead of an error, and a partial history that looks complete
+  // is the failure mode worth catching.
+  const expected = Number(await depositContract.depositCount());
+  if (deposits.length < expected) {
+    historyComplete = false;
+    console.warn(
+      `  backfill: found ${deposits.length} of ${expected} deposits — the log endpoint does not serve` +
+        ` full history. Set FAIRATE_LOGS_RPC_URL to an archive-capable RPC to restore all of it.`
+    );
   }
 
   let restored = 0;
@@ -617,6 +636,7 @@ const routes: Record<string, (body: Json, url: URL) => Promise<Json>> = {
   'GET /api/transfers': () =>
     Promise.resolve({
       restoring,
+      historyComplete,
       transfers: [...transfers.values()].sort((a, b) => b.createdAt - a.createdAt),
     }),
   'GET /api/status': (_body, url) => {
@@ -624,6 +644,8 @@ const routes: Record<string, (body: Json, url: URL) => Promise<Json>> = {
     if (!ethers.isAddress(address)) throw new Error(`"${String(address)}" is not a valid address`);
     return getStatus(address);
   },
+  // Cheap, dependency-free health check: hosts poll this constantly, so it must not touch a chain.
+  'GET /api/health': () => Promise.resolve({ ok: true, restoring, historyComplete, transfers: transfers.size }),
   'GET /api/config': () =>
     Promise.resolve({
       sender: config.sourceWallet.address,
@@ -682,8 +704,8 @@ const server = http.createServer((req, res) => {
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`Fairate API listening on http://localhost:${PORT}`);
+server.listen(PORT, HOST, () => {
+  console.log(`Fairate API listening on ${HOST}:${PORT}`);
   console.log(`  sender wallet: ${config.sourceWallet.address}`);
   console.log(`  escrow:        ${config.addresses.escrow}`);
 

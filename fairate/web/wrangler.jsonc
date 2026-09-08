@@ -1,0 +1,11 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "fairate",
+  "compatibility_date": "2026-08-08",
+  // Static-assets-only Worker: the UI is a pure client-side build. Signing and proof generation
+  // stay on the API host, which needs a long-running Node process that Workers cannot provide.
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}

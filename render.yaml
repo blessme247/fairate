@@ -1,0 +1,47 @@
+# Render blueprint for the Fairate API.
+#
+# The API is a long-running Node process, not a serverless function: settlement waits ~8 minutes
+# for Attestcoin to attest the deposit's block, which exceeds every serverless timeout. It also
+# signs transactions, so it holds a key — a dedicated relayer wallet with gas and no privileges.
+#
+# The free plan sleeps after inactivity. That is safe here because the API rebuilds its transfer
+# history from chain logs on startup (~6s), so a cold start loses nothing.
+services:
+  - type: web
+    name: fairate-api
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: corepack enable && pnpm install --frozen-lockfile
+    startCommand: pnpm fairate:api
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 24.14.0
+      # Set these in the Render dashboard — never commit their values.
+      - key: RELAYER_PRIVATE_KEY
+        sync: false
+      - key: SOURCE_CHAIN_RPC_URL
+        sync: false
+      - key: CREDITCOIN_RPC_URL
+        value: https://rpc.cc3-testnet.creditcoin.network
+      - key: PROOF_BUILDER_URL
+        value: https://prover.cc3-testnet.creditcoin.network
+      - key: SOURCE_CHAIN_KEY
+        value: "1"
+      - key: FAIRATE_SOURCE_STABLECOIN
+        value: "0xB7D53a4b25fbA61be33F709e460432B1FAE3c7Ba"
+      - key: FAIRATE_SOURCE_DEPOSIT
+        value: "0x9F961084ed5834F6b30647599d34976C0eB1a881"
+      - key: FAIRATE_ESCROW
+        value: "0xd6Dc3b2FE9D2d84da83e8bab4c1CCD86B4B99dc6"
+      - key: FAIRATE_PAYOUT_TOKEN
+        value: "0x63BA154f35A679752C16F8CDf46a87b5c9D993cf"
+      - key: FAIRATE_RATE_FEED
+        value: "0x11b16c9E2E705A0B5eb9Dc5c5dD621b4670297cB"
+      - key: FAIRATE_RATE_PUBLISHER
+        value: "0x24be75C6868F4e283d37f91Ae15cA924723cDA90"
+      - key: FAIRATE_DEPOSIT_DEPLOY_BLOCK
+        value: "11649386"
+      - key: FAIRATE_ESCROW_DEPLOY_BLOCK
+        value: "5442473"
