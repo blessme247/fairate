@@ -150,7 +150,11 @@ export function SendForm({ rate, sender, account, onSend, walletStep, onConnect,
           <input type="checkbox" checked={queue} onChange={(event) => setQueue(event.target.checked)} />
           <span>
             Queue for batch settlement
-            <em>Hold it back so several transfers can share one proof.</em>
+            <em>
+              {queue
+                ? 'Held back — select it with others below and settle them under one proof.'
+                : 'Off: this transfer settles on its own as soon as it is attested.'}
+            </em>
           </span>
         </label>
 
