@@ -45,18 +45,18 @@ Where a sender deposits. Attestcoin's source chain key for Sepolia is `1`.
 
 | Contract            | Address                                                                                                                                      | Purpose                                                                                                                   |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `RemittanceEscrow`  | [`0xd6Dc3b2FE9D2d84da83e8bab4c1CCD86B4B99dc6`](https://creditcoin-testnet.blockscout.com/address/0xd6Dc3b2FE9D2d84da83e8bab4c1CCD86B4B99dc6) | The ASC. Verifies the deposit via the Attestcoin precompile, prices it with the attested rate, mints, records reputation. |
-| `FairateNGN` (fNGN) | [`0x63BA154f35A679752C16F8CDf46a87b5c9D993cf`](https://creditcoin-testnet.blockscout.com/address/0x63BA154f35A679752C16F8CDf46a87b5c9D993cf) | Payout token. Only `RemittanceEscrow` holds `ASC_MINTER`.                                                                 |
+| `RemittanceEscrow`  | [`0x32328dc8858279f35dEc9E704D51291B37F06290`](https://creditcoin-testnet.blockscout.com/address/0x32328dc8858279f35dEc9E704D51291B37F06290) | The ASC. Verifies the deposit via the Attestcoin precompile, prices it with the attested rate, mints, records reputation. |
+| `FairateNGN` (fNGN) | [`0x43971A8c0d81e623E65ee04F1cC844Eb71C12FC4`](https://creditcoin-testnet.blockscout.com/address/0x43971A8c0d81e623E65ee04F1cC844Eb71C12FC4) | Payout token. Only `RemittanceEscrow` holds `ASC_MINTER`.                                                                 |
 
 Shared infrastructure (pre-deployed by Gluwa):
 
 - `EvmV1Decoder` library — `0x04B9ae8562D8Cc5bbbBbBB759080dDC30B56D18B`
 - Native query verifier precompile — `0x0000000000000000000000000000000000000FD2`
 
-> Several addresses repeat across the two chains: `FairateNGN` on Creditcoin matches the demo
-> `FairateDeposit` on Sepolia, and the escrow matches the demo `FairateRateFeed`. Same deployer,
-> same nonces, two different chains — unrelated contracts. Check which network an address is on
-> before reading it.
+> The Creditcoin pair was redeployed on 2026-09-12, so the cross-chain address collisions this
+> note used to warn about are gone. The two Sepolia addresses that collided — demo `FairateDeposit`
+> `0x63BA154f…93cf` and `FairateRateFeed` `0xd6Dc3b2F…9dc6` — are unchanged and now match the
+> *superseded* Creditcoin contracts below. Check which network an address is on before reading it.
 
 ## Corridor wiring
 
@@ -139,6 +139,11 @@ Kept so the transfer history above stays traceable:
 - `FairateDeposit` `0x6a368E74…043D`, `FairateRateFeed` `0x5F39EB8D…2b98` — pre-`peek()` signature
 - `FairateRatePublisher` `0x4555DB94…9dfa` — publisher role held the deployer key
 - `RemittanceEscrow` `0x3fe87B01…6c23` and `FairateNGN` `0xB7D53a4b…c7Ba` — no `executeBatch`
+- `RemittanceEscrow` `0xd6Dc3b2F…9dc6` and `FairateNGN` `0x63BA154f…93cf` — retired 2026-09-12 to
+  clear demo reputation counters and fNGN balances, which are contract state with no reset path
+
+> The live escrow `0x32328dc8…6290` shares an address with the superseded Sepolia `FairateDeposit`
+> two lines up — same deployer and nonce on a different chain, as before. Unrelated contracts.
 
 ## Reproducing
 

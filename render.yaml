@@ -34,14 +34,18 @@ services:
       - key: FAIRATE_SOURCE_DEPOSIT
         value: "0x9F961084ed5834F6b30647599d34976C0eB1a881"
       - key: FAIRATE_ESCROW
-        value: "0xd6Dc3b2FE9D2d84da83e8bab4c1CCD86B4B99dc6"
+        value: "0x32328dc8858279f35dEc9E704D51291B37F06290"
       - key: FAIRATE_PAYOUT_TOKEN
-        value: "0x63BA154f35A679752C16F8CDf46a87b5c9D993cf"
+        value: "0x43971A8c0d81e623E65ee04F1cC844Eb71C12FC4"
       - key: FAIRATE_RATE_FEED
         value: "0x11b16c9E2E705A0B5eb9Dc5c5dD621b4670297cB"
       - key: FAIRATE_RATE_PUBLISHER
         value: "0x24be75C6868F4e283d37f91Ae15cA924723cDA90"
+      # Deliberately above the deposit contract's own deploy block (11649386). The escrow was
+      # redeployed at Creditcoin block 5475363, so deposits made against the previous one have no
+      # matching release any more and the backfill would restore every one of them as queued.
+      # Starting the scan after the last of them keeps the transfer list honest, not just short.
       - key: FAIRATE_DEPOSIT_DEPLOY_BLOCK
-        value: "11649386"
+        value: "11688238"
       - key: FAIRATE_ESCROW_DEPLOY_BLOCK
-        value: "5442473"
+        value: "5475363"
