@@ -70,9 +70,10 @@ export function TransferTimeline({
           {transfers.map((transfer, index) => {
             const stage = stageOf(transfer);
             const progress = attestationProgress(transfer, attestation);
+            const isQueued = transfer.status === 'queued';
 
             return (
-              <li className="transfer" key={transfer.id} style={{ animationDelay: `${Math.min(index, 6) * 40}ms` }}>
+              <li className={`transfer ${selected.has(transfer.id) ? "transfer-selected" : ""} `} onClick={()=> {if(!isQueued) return; onToggleSelect(transfer.id)}} role={isQueued ? "button" : "listitem"} key={transfer.id} style={{ animationDelay: `${Math.min(index, 6) * 40}ms` }}>
                 <div className="transfer-head">
                   <div>
                     <div className="transfer-amount mono">

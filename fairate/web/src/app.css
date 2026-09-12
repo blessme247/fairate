@@ -423,7 +423,12 @@
   opacity: 0;
   transform: translateY(6px);
   animation: transfer-in 260ms var(--ease-out) forwards;
+  cursor: pointer;
 }
+.transfer-selected {
+  border: 1px solid var(--border);
+}
+
 
 @keyframes transfer-in {
   to {
