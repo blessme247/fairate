@@ -139,6 +139,34 @@ const SOURCE_LOOKBACK = Number(process.env.FAIRATE_BACKFILL_SOURCE_BLOCKS ?? 60_
 const PAYOUT_LOOKBACK = Number(process.env.FAIRATE_BACKFILL_PAYOUT_BLOCKS ?? 40_000);
 
 /**
+ * Deposit transactions to omit from the transfer list. **Presentation only, and temporary.**
+ *
+ * A recording needs a specific starting picture, and a botched take leaves real transfers on chain
+ * that cannot be deleted. This hides them from the list without pretending they never happened:
+ * nothing on either chain changes, no balance or reputation counter moves, and unsetting the
+ * variable brings them straight back.
+ *
+ * Deliberately a hide-list rather than a show-only-list. A show-only-list would also swallow the
+ * transfer sent live during the demo — the one thing that must never disappear — and would swallow
+ * it precisely when the host restarts mid-recording, which is exactly when nobody can debug it.
+ *
+ * Remove this and its two uses once the recording is done; it earns no place in the running system.
+ */
+const HIDDEN_TRANSFERS = new Set(
+  (process.env.FAIRATE_HIDE_TRANSFERS ?? '')
+    .split(',')
+    .map((tx) => tx.trim().toLowerCase())
+    .filter(Boolean)
+);
+
+/** The transfer list as callers should see it, newest first, minus anything hidden for a recording. */
+function visibleTransfers(): TransferRecord[] {
+  return [...transfers.values()]
+    .filter((record) => !HIDDEN_TRANSFERS.has(record.depositTx.toLowerCase()))
+    .sort((a, b) => b.createdAt - a.createdAt);
+}
+
+/**
  * Chunk sizes differ because the two chains fail differently: Sepolia providers cap the *block
  * range*, while Creditcoin enforces a 10-second *query timeout*, which a 45k-block scan exceeds.
  */
@@ -639,7 +667,7 @@ const routes: Record<string, (body: Json, url: URL) => Promise<Json>> = {
     Promise.resolve({
       restoring,
       historyComplete,
-      transfers: [...transfers.values()].sort((a, b) => b.createdAt - a.createdAt),
+      transfers: visibleTransfers(),
     }),
   'GET /api/status': (_body, url) => {
     const address = url.searchParams.get('address') ?? config.creditcoinWallet.address;
@@ -647,7 +675,9 @@ const routes: Record<string, (body: Json, url: URL) => Promise<Json>> = {
     return getStatus(address);
   },
   // Cheap, dependency-free health check: hosts poll this constantly, so it must not touch a chain.
-  'GET /api/health': () => Promise.resolve({ ok: true, restoring, historyComplete, transfers: transfers.size }),
+  // Counts what the UI would show, not what the map holds, so health stays a check on the screen.
+  'GET /api/health': () =>
+    Promise.resolve({ ok: true, restoring, historyComplete, transfers: visibleTransfers().length }),
   'GET /api/config': () =>
     Promise.resolve({
       sender: config.sourceWallet.address,
