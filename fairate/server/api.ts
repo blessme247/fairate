@@ -139,30 +139,48 @@ const SOURCE_LOOKBACK = Number(process.env.FAIRATE_BACKFILL_SOURCE_BLOCKS ?? 60_
 const PAYOUT_LOOKBACK = Number(process.env.FAIRATE_BACKFILL_PAYOUT_BLOCKS ?? 40_000);
 
 /**
- * Deposit transactions to omit from the transfer list. **Presentation only, and temporary.**
+ * Which pre-existing transfers a recording should show. **Presentation only, and temporary.**
  *
  * A recording needs a specific starting picture, and a botched take leaves real transfers on chain
- * that cannot be deleted. This hides them from the list without pretending they never happened:
+ * that cannot be deleted. These hide them from the list without pretending they never happened:
  * nothing on either chain changes, no balance or reputation counter moves, and unsetting the
- * variable brings them straight back.
+ * variables brings them straight back.
  *
- * Deliberately a hide-list rather than a show-only-list. A show-only-list would also swallow the
- * transfer sent live during the demo — the one thing that must never disappear — and would swallow
- * it precisely when the host restarts mid-recording, which is exactly when nobody can debug it.
+ * Two knobs, because naming every take that went wrong does not scale once the takes outnumber the
+ * keepers — by the third one the list is longer than the thing it selects:
  *
- * Remove this and its two uses once the recording is done; it earns no place in the running system.
+ * - `FAIRATE_SHOW_ONLY` names the keepers. Everything else restored from chain is hidden, so a
+ *   botched take needs no edit at all: it is simply not on the list.
+ * - `FAIRATE_HIDE_TRANSFERS` names individual casualties, for when most of the history is fine.
+ *
+ * Neither can hide a transfer sent *during* the recording — the one thing that must never
+ * disappear. Only history rebuilt at startup is filtered, so a live send stays visible even if the
+ * host restarts mid-take, which is exactly when nobody can afford to debug it.
  */
-const HIDDEN_TRANSFERS = new Set(
-  (process.env.FAIRATE_HIDE_TRANSFERS ?? '')
-    .split(',')
-    .map((tx) => tx.trim().toLowerCase())
-    .filter(Boolean)
-);
+const parseTxList = (raw: string | undefined) =>
+  new Set(
+    (raw ?? '')
+      .split(',')
+      .map((tx) => tx.trim().toLowerCase())
+      .filter(Boolean)
+  );
+
+const SHOW_ONLY = parseTxList(process.env.FAIRATE_SHOW_ONLY);
+const HIDDEN_TRANSFERS = parseTxList(process.env.FAIRATE_HIDE_TRANSFERS);
+
+/** Deposit txs restored from chain logs, as opposed to seen live by this process. */
+const backfilledTransfers = new Set<string>();
 
 /** The transfer list as callers should see it, newest first, minus anything hidden for a recording. */
 function visibleTransfers(): TransferRecord[] {
   return [...transfers.values()]
-    .filter((record) => !HIDDEN_TRANSFERS.has(record.depositTx.toLowerCase()))
+    .filter((record) => {
+      const tx = record.depositTx.toLowerCase();
+      if (HIDDEN_TRANSFERS.has(tx)) return false;
+      // A show-only list speaks for history alone; anything this process watched happen stays.
+      if (SHOW_ONLY.size > 0 && backfilledTransfers.has(tx) && !SHOW_ONLY.has(tx)) return false;
+      return true;
+    })
     .sort((a, b) => b.createdAt - a.createdAt);
 }
 
@@ -335,6 +353,7 @@ async function backfill(): Promise<void> {
     };
 
     transfers.set(depositTx, record);
+    backfilledTransfers.add(depositTx.toLowerCase());
     restored += 1;
     if (!release) queued += 1;
   }
