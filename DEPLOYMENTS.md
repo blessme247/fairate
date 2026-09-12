@@ -5,6 +5,22 @@ All addresses below are **testnet only**. Nothing here holds or represents real 
 - Deployer / demo wallet: `0x42a50d325FA26D49282cd4CECe122B45E54927c3`
 - Rate publisher wallet: `0x29C0635e52144710a584624510f7B30d5aE53D83` — Sepolia gas only, no admin rights
 
+## Live instances
+
+| What | URL                                | Hosting                            |
+| ---- | ---------------------------------- | ---------------------------------- |
+| UI   | https://fairate.kamigo.workers.dev | Cloudflare Workers (static assets) |
+| API  | https://fairate-api.onrender.com   | Render (long-running Node process) |
+
+The split is forced by the architecture, not preference. The UI is a static build and suits the
+edge; the API signs transactions and waits ~8 minutes for attestation, which exceeds every
+serverless timeout. `@gluwa/usc-sdk` also cannot run in `workerd` — its axios transport builds a
+`Request` with a cache mode the runtime rejects.
+
+The deployed API signs with a dedicated relayer wallet, `0x573884944A535F2e65226B2dE79356588b8af6F9`,
+holding gas and nothing else: `execute` is permissionless and `MockUSD.mint` is open, so it needs no
+privileges and a leaked host secret can never mint or reach an admin function.
+
 ## Ethereum Sepolia (source chain, chain ID 11155111)
 
 Where a sender deposits. Attestcoin's source chain key for Sepolia is `1`.

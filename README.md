@@ -7,7 +7,12 @@ really happened, through decentralised attestation rather than a bridge operator
 receiver be paid in local currency, at an FX rate that was itself attested — and both parties build
 a portable credit record out of transfers that provably settled.
 
+**Live demo: https://fairate.kamigo.workers.dev** · API: https://fairate-api.onrender.com/api/health
+
 Built for BUIDL CTC 2026 Fall. Testnet only.
+
+> The API sleeps after inactivity on its free tier, so the first request after a quiet period takes
+> about a minute to wake. Everything after that is immediate.
 
 ---
 
@@ -122,7 +127,10 @@ Batching is also how remittance actually works: corridors net and settle in wind
 
 ## Try it
 
-Requires Node 24, pnpm, Foundry, a Sepolia RPC URL, and a funded testnet wallet.
+The fastest path is the [live demo](https://fairate.kamigo.workers.dev) — connect a wallet to sign
+your own deposit, or use the built-in demo wallet if you have no Sepolia funds.
+
+To run it locally, you need Node 24, pnpm, Foundry, a Sepolia RPC URL, and a funded testnet wallet.
 
 ```sh
 pnpm install
