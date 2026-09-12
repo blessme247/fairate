@@ -142,8 +142,10 @@ const PAYOUT_LOOKBACK = Number(process.env.FAIRATE_BACKFILL_PAYOUT_BLOCKS ?? 40_
  * Chunk sizes differ because the two chains fail differently: Sepolia providers cap the *block
  * range*, while Creditcoin enforces a 10-second *query timeout*, which a 45k-block scan exceeds.
  */
-const SOURCE_LOG_CHUNK = 45_000;
-const PAYOUT_LOG_CHUNK = 8_000;
+// 9k suits the common free-tier cap (Alchemy and most others allow 10k); scanning from the
+// deployment block is only a few requests either way, so the compatible default is the right one.
+const SOURCE_LOG_CHUNK = Number(process.env.FAIRATE_SOURCE_LOG_CHUNK ?? 9_000);
+const PAYOUT_LOG_CHUNK = Number(process.env.FAIRATE_PAYOUT_LOG_CHUNK ?? 8_000);
 /** Give up rather than issue thousands of tiny requests against a very restrictive provider. */
 const LOG_REQUEST_BUDGET = 400;
 

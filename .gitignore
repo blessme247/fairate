@@ -45,3 +45,6 @@ skills-lock.json
 .dev.vars
 **/.dev.vars
 .wrangler/
+
+# Demo notes — local only
+.claude/DEMO_SCRIPT.md
