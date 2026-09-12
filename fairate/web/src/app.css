@@ -285,18 +285,21 @@
  * Secondary button.
  *
  * It previously shared the input's exact background, border and radius, so beside a text field it
- * read as a second input rather than a control. Inputs are recessed and buttons are raised: this
- * takes the raised surface, a stronger border and full-strength text, and lifts slightly on hover
- * so the affordance survives a glance.
+ * read as a second input rather than a control. A raised neutral surface was not enough either —
+ * white on off-white is nearly invisible — so it carries the accent at rest: tinted fill, accent
+ * border, accent label. Hover only deepens what is already obviously a button, rather than being
+ * the moment the button becomes findable.
+ *
+ * The hierarchy stays readable against the solid-accent primary action: filled is primary, tinted
+ * is secondary.
  */
 .button-ghost {
   width: auto;
-  background: var(--surface);
-  border-color: var(--border-strong);
-  color: var(--text);
-  font-weight: 540;
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+  color: var(--accent);
+  font-weight: 560;
   white-space: nowrap;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
   transition:
     transform 160ms var(--ease-out),
     border-color 160ms var(--ease-out),
@@ -306,19 +309,14 @@
 
 @media (hover: hover) and (pointer: fine) {
   .button-ghost:hover:not(:disabled) {
-    border-color: var(--accent-border);
-    color: var(--accent);
-    box-shadow: 0 2px 5px rgb(0 0 0 / 0.09);
+    border-color: var(--accent);
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
   }
 }
 
 @media (prefers-color-scheme: dark) {
-  .button-ghost {
-    box-shadow: 0 1px 2px rgb(0 0 0 / 0.35);
-  }
-
   .button-ghost:hover:not(:disabled) {
-    box-shadow: 0 2px 6px rgb(0 0 0 / 0.45);
+    box-shadow: 0 1px 4px rgb(0 0 0 / 0.4);
   }
 }
 
