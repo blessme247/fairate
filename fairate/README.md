@@ -42,6 +42,19 @@ NGN feed, or several publishers with a median.
 Every rate a script prints is labelled with the feed's own `description()`, read from the contract
 rather than written into the output, so a mislabelled corridor is visible rather than plausible.
 
+### Keeping the deployment alive
+
+Two scheduled workflows keep the live instance usable without anyone tending it:
+
+- `publish-rate.yml` republishes the FX rate twice daily. The provider only refreshes once a day,
+  so the second run usually posts the same number — the point is that publishing resets the 24h
+  staleness clock, so one missed run cannot take the corridor offline.
+- `keep-awake.yml` pings `/api/health` every 10 minutes. The API's free tier sleeps after ~15
+  minutes, and a sleep does more than add latency: the transfer list is in memory, and this
+  deployment's log endpoint cannot serve the ranges needed to rebuild it, so sleeping also empties
+  visible history. Setting `FAIRATE_LOGS_RPC_URL` to an archive-capable endpoint makes history
+  survive restarts and removes the need for this.
+
 ### Keeping the rate fresh
 
 `FairateRateFeed` rejects readings older than 24h, so a corridor whose publisher stops does not

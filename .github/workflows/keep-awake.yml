@@ -1,0 +1,39 @@
+name: Keep API awake
+
+# The API runs on a free tier that sleeps after ~15 minutes of inactivity, and a cold start takes
+# roughly a minute. That is survivable for a casual visitor but not for a judge who opens the live
+# demo once and forms an impression while it spins up.
+#
+# It matters more than latency here: the transfer list lives in memory, and the log endpoint this
+# deployment uses cannot serve the history ranges needed to rebuild it, so a sleep also empties the
+# visible history. Pinging the health endpoint keeps both problems away.
+#
+# /api/health is deliberately dependency-free — it touches no chain — so this costs nothing beyond
+# an HTTP request.
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: keep-awake
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping the API
+        run: |
+          # --max-time 90 rather than the default: a cold start legitimately takes ~50s, and
+          # treating that as a failure would page for the very thing this job exists to fix.
+          code=$(curl -sS -o /tmp/health.json -w '%{http_code}' --max-time 90 \
+            https://fairate-api.onrender.com/api/health) || true
+          echo "HTTP $code"
+          cat /tmp/health.json 2>/dev/null || true
+          echo
+          if [ "$code" != "200" ]; then
+            echo "::warning::API health check returned $code"
+          fi

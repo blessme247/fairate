@@ -10,10 +10,11 @@ name: Publish USD/NGN rate
 
 on:
   schedule:
-    # 06:00 UTC daily. The upstream provider refreshes roughly once a day just after 00:00 UTC,
-    # so this picks up each new quote with margin, and leaves ~18h of the 24h staleness window
-    # spare if a run fails.
-    - cron: '0 6 * * *'
+    # Twice daily. The upstream provider only refreshes once a day just after 00:00 UTC, so the
+    # second run usually republishes the same number — that is the point. Publishing resets the
+    # 24h staleness clock, so two runs mean a single missed or delayed run cannot take the
+    # corridor offline, and the on-chain rate is never more than ~12h old.
+    - cron: '0 6,18 * * *'
   workflow_dispatch: {}
 
 concurrency:
