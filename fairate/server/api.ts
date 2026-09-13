@@ -139,52 +139,6 @@ const SOURCE_LOOKBACK = Number(process.env.FAIRATE_BACKFILL_SOURCE_BLOCKS ?? 60_
 const PAYOUT_LOOKBACK = Number(process.env.FAIRATE_BACKFILL_PAYOUT_BLOCKS ?? 40_000);
 
 /**
- * Which pre-existing transfers a recording should show. **Presentation only, and temporary.**
- *
- * A recording needs a specific starting picture, and a botched take leaves real transfers on chain
- * that cannot be deleted. These hide them from the list without pretending they never happened:
- * nothing on either chain changes, no balance or reputation counter moves, and unsetting the
- * variables brings them straight back.
- *
- * Two knobs, because naming every take that went wrong does not scale once the takes outnumber the
- * keepers — by the third one the list is longer than the thing it selects:
- *
- * - `FAIRATE_SHOW_ONLY` names the keepers. Everything else restored from chain is hidden, so a
- *   botched take needs no edit at all: it is simply not on the list.
- * - `FAIRATE_HIDE_TRANSFERS` names individual casualties, for when most of the history is fine.
- *
- * Neither can hide a transfer sent *during* the recording — the one thing that must never
- * disappear. Only history rebuilt at startup is filtered, so a live send stays visible even if the
- * host restarts mid-take, which is exactly when nobody can afford to debug it.
- */
-const parseTxList = (raw: string | undefined) =>
-  new Set(
-    (raw ?? '')
-      .split(',')
-      .map((tx) => tx.trim().toLowerCase())
-      .filter(Boolean)
-  );
-
-const SHOW_ONLY = parseTxList(process.env.FAIRATE_SHOW_ONLY);
-const HIDDEN_TRANSFERS = parseTxList(process.env.FAIRATE_HIDE_TRANSFERS);
-
-/** Deposit txs restored from chain logs, as opposed to seen live by this process. */
-const backfilledTransfers = new Set<string>();
-
-/** The transfer list as callers should see it, newest first, minus anything hidden for a recording. */
-function visibleTransfers(): TransferRecord[] {
-  return [...transfers.values()]
-    .filter((record) => {
-      const tx = record.depositTx.toLowerCase();
-      if (HIDDEN_TRANSFERS.has(tx)) return false;
-      // A show-only list speaks for history alone; anything this process watched happen stays.
-      if (SHOW_ONLY.size > 0 && backfilledTransfers.has(tx) && !SHOW_ONLY.has(tx)) return false;
-      return true;
-    })
-    .sort((a, b) => b.createdAt - a.createdAt);
-}
-
-/**
  * Chunk sizes differ because the two chains fail differently: Sepolia providers cap the *block
  * range*, while Creditcoin enforces a 10-second *query timeout*, which a 45k-block scan exceeds.
  */
@@ -353,7 +307,6 @@ async function backfill(): Promise<void> {
     };
 
     transfers.set(depositTx, record);
-    backfilledTransfers.add(depositTx.toLowerCase());
     restored += 1;
     if (!release) queued += 1;
   }
@@ -686,7 +639,7 @@ const routes: Record<string, (body: Json, url: URL) => Promise<Json>> = {
     Promise.resolve({
       restoring,
       historyComplete,
-      transfers: visibleTransfers(),
+      transfers: [...transfers.values()].sort((a, b) => b.createdAt - a.createdAt),
     }),
   'GET /api/status': (_body, url) => {
     const address = url.searchParams.get('address') ?? config.creditcoinWallet.address;
@@ -694,9 +647,7 @@ const routes: Record<string, (body: Json, url: URL) => Promise<Json>> = {
     return getStatus(address);
   },
   // Cheap, dependency-free health check: hosts poll this constantly, so it must not touch a chain.
-  // Counts what the UI would show, not what the map holds, so health stays a check on the screen.
-  'GET /api/health': () =>
-    Promise.resolve({ ok: true, restoring, historyComplete, transfers: visibleTransfers().length }),
+  'GET /api/health': () => Promise.resolve({ ok: true, restoring, historyComplete, transfers: transfers.size }),
   'GET /api/config': () =>
     Promise.resolve({
       sender: config.sourceWallet.address,
